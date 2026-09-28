@@ -46,16 +46,32 @@ function business(full = false) {
 
 const website = () => ({ '@type': 'WebSite', '@id': SITE_ID, url: abs('/'), name: site.name, publisher: { '@id': BIZ_ID }, inLanguage: 'en-US' });
 
-const webPage = (path, name, description, type = 'WebPage') => ({
-  '@type': type,
-  '@id': abs(path) + '#webpage',
-  url: abs(path),
-  name,
-  description,
-  isPartOf: { '@id': SITE_ID },
-  about: { '@id': BIZ_ID },
-  inLanguage: 'en-US',
-});
+const BUILD_DATE = new Date().toISOString().slice(0, 10);
+const webPage = (path, name, description, type = 'WebPage', opts = {}) => {
+  const page = {
+    '@type': type,
+    '@id': abs(path) + '#webpage',
+    url: abs(path),
+    name,
+    description,
+    isPartOf: { '@id': SITE_ID },
+    about: { '@id': BIZ_ID },
+    publisher: { '@id': BIZ_ID },
+    dateModified: BUILD_DATE,
+    inLanguage: 'en-US',
+  };
+  // AEO: point voice assistants / answer engines at the page's direct-answer block.
+  if (opts.speakable) page.speakable = { '@type': 'SpeakableSpecification', cssSelector: opts.speakable };
+  if (opts.image) page.primaryImageOfPage = { '@type': 'ImageObject', url: abs(opts.image) };
+  if (opts.place) {
+    page.spatialCoverage = {
+      '@type': 'City',
+      name: `${opts.place.name}, NJ`,
+      containedInPlace: { '@type': 'AdministrativeArea', name: `${opts.place.county}, NJ` },
+    };
+  }
+  return page;
+};
 
 const serviceSchema = (svc, path, area) => ({
   '@type': 'Service',

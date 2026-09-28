@@ -111,7 +111,7 @@ function footer() {
   <div class="footer-bottom">
     <div class="wrap footer-bottom-in">
       <span>© <span data-year>${new Date().getFullYear()}</span> ${esc(site.name)}. All rights reserved.</span>
-      <span><a href="/privacy-policy/">Privacy Policy</a> · <a href="/sitemap.xml">Sitemap</a></span>
+      <span><a href="/privacy-policy/">Privacy Policy</a> · <a href="/sitemap/">Sitemap</a> · <a href="/sitemap.xml">XML Sitemap</a></span>
     </div>
   </div>
 </footer>

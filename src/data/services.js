@@ -30,7 +30,7 @@ module.exports = [
     materials: ['Architectural asphalt shingles', 'Impact- and wind-rated shingles', 'Low-slope rubber (EPDM) & TPO', 'Standing seam metal accents'],
     faqs: [
       ['How long does a roof replacement take?', 'Most single-family homes are torn off and re-roofed in one to two days. Larger or steeper roofs, multiple layers of old shingles or significant deck repairs can add a day. We keep the home watertight at the end of every work day.'],
-      ['Do I need a permit to replace my roof in New Jersey?', 'Yes. New Jersey requires a construction permit for a full roof replacement, and your town will inspect the work. We pull the permit and schedule the inspection for you as part of the job.'],
+      ['Do I need a permit to replace my roof in New Jersey?', 'Often, yes — permit requirements depend on the scope of work and your township’s construction office. We confirm what your project needs, pull any required permits and schedule the inspections as part of the job.'],
       ['Can you install a new roof over my old shingles?', 'We recommend a full tear-off. Laying over old shingles hides decking damage, adds weight, shortens the life of the new roof and can limit your manufacturer warranty. Near the shore, wind uplift is also a bigger concern on layered roofs.'],
       ['What does a new roof cost?', 'Price depends on roof size, pitch, number of layers, decking condition and the shingle line you choose. We give you a free written estimate with every line item spelled out — no pressure and no surprises.'],
     ],
@@ -94,7 +94,7 @@ module.exports = [
     faqs: [
       ['What siding holds up best near the ocean?', 'Quality vinyl and fiber cement both perform very well in salt air. Fiber cement resists impact and fire and holds paint for years; premium vinyl is low-maintenance and never needs painting. We’ll walk you through the trade-offs for your home and budget.'],
       ['Can you replace just a few damaged pieces of siding?', 'Yes. We repair storm-damaged sections regularly. If your exact panel is still made we’ll match it; if not, we can pull matching panels from a less-visible wall and use new siding there.'],
-      ['Does new siding need a permit?', 'Most New Jersey towns require a permit for full siding replacement. We handle the permit and inspection.'],
+      ['Does new siding need a permit?', 'It depends on the town and the scope of the job. We check with your construction office and handle any required permit and inspection.'],
     ],
   },
   {
@@ -217,7 +217,7 @@ module.exports = [
     materials: ['Trex / TimberTech–style composite', 'PVC decking', 'Pressure-treated lumber', 'Aluminum & vinyl railing'],
     faqs: [
       ['Composite or wood — which deck is better?', 'Composite and PVC decking cost more up front but won’t rot, splinter or need yearly staining. Pressure-treated wood is the budget-friendly choice and holds up well with maintenance. We build both.'],
-      ['Do I need a permit to build a deck?', 'In New Jersey, most decks attached to a house or more than 30" off the ground need a permit. We prepare drawings and handle the permit and inspections.'],
+      ['Do I need a permit to build a deck?', 'New decks in New Jersey almost always need a construction permit. We prepare the drawings and handle the permit and inspections.'],
       ['Can you just replace my deck boards?', 'Yes — if the framing underneath is sound. We inspect the joists, ledger and posts first; re-decking over a failing frame is money wasted.'],
     ],
   },

@@ -2,7 +2,9 @@ const site = require('./data/site');
 const services = require('./data/services');
 const articles = require('./data/articles');
 const { counties, towns } = require('./data/areas');
-const { characters, serviceAngles, angleKey } = require('./data/local');
+const { characters, serviceAngles, angleKey, variants, angleAlt } = require('./data/local');
+// Character copy for a town: the base text or one of its alternates, chosen per town.
+const charText = (t, field) => pick([characters[t.character][field], ...variants[t.character][field]], t.slug + field);
 const { layout, esc, tel } = require('./lib/layout');
 const { icon } = require('./lib/icons');
 const C = require('./lib/components');
@@ -40,7 +42,7 @@ const cleanSections = (t) => t.sections.map((x) => x.replace(/\s*\((border)\)/, 
 const hash = (str) => [...str].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
 const pick = (arr, key) => arr[hash(key) % arr.length];
 
-function hero({ eyebrow, h1, lead, form, crumbsAbove = false }) {
+function hero({ eyebrow, h1, lead, form, crumbsAbove = false, trust = true }) {
   return `<section class="hero${crumbsAbove ? ' hero-inner' : ''}">
   <div class="hero-bg" aria-hidden="true"></div>
   <div class="wrap hero-grid">
@@ -52,7 +54,7 @@ function hero({ eyebrow, h1, lead, form, crumbsAbove = false }) {
         <a class="btn btn-gold btn-lg" href="${tel}">${icon('phone')} ${site.phone}</a>
         <a class="btn btn-ghost btn-lg" href="#estimate">Free Estimate ${icon('arrow')}</a>
       </div>
-      ${C.trustStrip()}
+      ${trust ? C.trustStrip() : ''}
     </div>
     <div class="hero-form">${form}</div>
   </div>
@@ -145,6 +147,8 @@ function serviceHub(svc) {
 ${hero({ eyebrow: `${svc.short} · Jersey Shore, NJ`, h1: esc(svc.headline), lead: esc(svc.blurb) + ' Serving every town in Ocean, Monmouth and Atlantic County.', form: C.estimateForm({ service: svc.name }), crumbsAbove: true })}
 <section class="section"><div class="wrap content-grid">
   <article class="prose">
+    <div class="answer" id="answer"><p class="answer-label">Quick answer</p><p>Exterior Home Repair Plus provides <strong>${esc(svc.keyword)} in Ocean, Monmouth and Atlantic County, NJ</strong> — ${esc(svc.blurb.charAt(0).toLowerCase() + svc.blurb.slice(1))} Free written estimates: <a href="${tel}">${site.phone}</a>.</p></div>
+    <figure class="svc-figure"><img src="/assets/img/services/${svc.slug}.svg" width="800" height="450" loading="lazy" decoding="async" alt="Illustration: ${esc(svc.name.toLowerCase())} on a Jersey Shore home"><figcaption>${esc(svc.name)} across Ocean, Monmouth &amp; Atlantic County, NJ</figcaption></figure>
     <h2>${esc(svc.name)} From a Local Jersey Shore Contractor</h2>
     <p>${esc(svc.intro)}</p>
     <h2>Signs You Need ${esc(svc.name)}</h2>
@@ -167,7 +171,7 @@ ${C.townDatalist()}`;
     path,
     html: layout({
       path, title, description, body, current: 'services', breadcrumbs: [['Home', '/'], ['Services', '/services/'], [svc.name, path]],
-      schema: [S.business(), S.webPage(path, title, description), S.serviceSchema(svc, path), C.faqSchema(svc.faqs, path)],
+      schema: [S.business(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: `/assets/img/services/${svc.slug}.svg` }), S.serviceSchema(svc, path), C.faqSchema(svc.faqs, path)],
     }),
   };
 }
@@ -236,41 +240,125 @@ ${C.townDatalist()}`;
   };
 }
 
+// ---------------------------------------------------------------- Local-content helpers
+const P = require('./data/pools');
+const fill = (tpl, v) => tpl.replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
+// Deterministic shuffle so each town/service page gets its own selection and order.
+const shuffled = (arr, key) => {
+  const a = arr.slice();
+  let h = hash(key);
+  for (let i = a.length - 1; i > 0; i--) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const j = h % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+const milesBetween = (a, b) => {
+  const R = 3958.8, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return Math.max(1, Math.round(2 * R * Math.asin(Math.sqrt(x))));
+};
+const direction = (a, b) => {
+  const ang = (Math.atan2(b.lat - a.lat, (b.lng - a.lng) * Math.cos(a.lat * Math.PI / 180)) * 180) / Math.PI;
+  return ['east', 'northeast', 'north', 'northwest', 'west', 'southwest', 'south', 'southeast'][Math.round(((ang + 360) % 360) / 45) % 8];
+};
+// Permit wording kept deliberately general — requirements vary by scope and township.
+const permitAnswer = (svc, name, key) => (['exterior-painting', 'power-washing'].includes(svc.slug)
+  ? pick([
+    `Usually not. ${svc.name} is maintenance work, but ${name} homes in a historic district or HOA may have appearance rules — we help you check first.`,
+    `In most cases ${name} doesn’t require a permit for ${svc.keyword}. If your neighborhood has an HOA or historic guidelines, we’ll confirm colors or methods before starting.`,
+    `No permit is typically needed for ${svc.keyword} in ${name}; condo or HOA homes may need board approval, which we can help you request.`,
+    `Generally not for ${svc.keyword}. The exception in ${name} is an association or historic-district property, and we’ll flag that during the estimate.`,
+  ], key)
+  : pick([
+    `It depends on scope. Larger ${svc.keyword} projects in ${name} typically go through the local construction office; we confirm the requirements and handle any permits and inspections.`,
+    `Some ${svc.keyword} work in ${name} needs a construction permit and some doesn’t. We check with the township for your specific project and take care of the paperwork.`,
+    `We’ll tell you after the inspection. If your ${name} project needs a permit, we file it with the township and schedule the inspection — you don’t have to deal with it.`,
+    `${name} follows the New Jersey Uniform Construction Code, and whether your ${svc.keyword} job needs a permit depends on its size. We sort that out for you.`,
+    `If a permit is required for your ${name} ${svc.short.toLowerCase()} project, it’s included in our process — we apply, schedule it and meet the inspector.`,
+  ], key));
+// Structured "at a glance" facts — unique per town and easy for answer engines to quote.
+function glance(t, svc, key) {
+  const secs = cleanSections(t);
+  const rows = [
+    svc ? null : ['County', `<a href="/service-areas/${t.county.slug}/">${esc(t.county.name)}</a>, New Jersey`],
+    svc ? null : ['Home types', esc(characters[t.character].label.replace(/^./, (c) => c.toUpperCase()) + ' homes')],
+    secs.length && !svc ? ['Neighborhoods', esc(secs.join(', '))] : null,
+    svc ? null : ['Nearest towns', t.nearby.slice(0, 5).map((n) => `<a href="${townPath(n)}">${esc(n.plainName)}</a> (${milesBetween(t, n)} mi ${direction(t, n)})`).join(', ')],
+    svc ? ['Common jobs', esc(shuffled(P.svc[svc.slug].needs, key + 'j').slice(0, 2).join('; '))] : null,
+    svc ? ['Price depends on', esc(shuffled(P.svc[svc.slug].costs, key + 'p').slice(0, 2).join('; '))] : null,
+    ['Estimates', `Free · <a href="${tel}">${site.phone}</a>`],
+  ].filter(Boolean);
+  return `<div class="glance"><h2 class="h3">${esc(t.plainName)}${svc ? ` ${esc(svc.short)}` : ''} at a Glance</h2><dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl></div>`;
+}
+const whyParagraph = (vars, key) => shuffled(P.whyLines, key + 'why').slice(0, 2).map((l) => esc(fill(l, vars))).join(' ');
+const strong = (s) => `<strong>${s}</strong>`;
+// Bold the first occurrence of the page's primary keyword phrase.
+const highlight = (html, phrase) => html.replace(phrase, strong(phrase));
+
 // ---------------------------------------------------------------- Town
 function townPage(t) {
   const path = townPath(t);
   const ch = characters[t.character];
   const secs = cleanSections(t);
-  const title = brandTitle(`Roofing, Siding & Exterior Repair ${t.plainName}, NJ`);
-  const description = `Exterior home repair in ${t.plainName}, ${t.county.name} NJ — roofing, siding, gutters, windows, doors, decks & storm repair. Free estimates: ${site.phone}.`;
+  const name = t.plainName;
+  const title = brandTitle(`Roofing, Siding & Exterior Repair ${name}, NJ`);
+  const description = `Exterior home repair in ${name}, ${t.county.name} NJ — roofing, siding, gutters, windows, doors, decks & storm repair. Free estimates: ${site.phone}.`;
+  const near = t.nearby.slice(0, 5);
+  const svcOrder = shuffled(services, 'town' + t.slug);
+  const sectionHtml = secs.map((s, i) => {
+    const sv = svcOrder[i % svcOrder.length];
+    const need = shuffled(P.svc[sv.slug].needs, s + t.slug)[0];
+    return fill(pick(P.sectionLines, s + 'town'), { section: esc(s), need: `<a href="${comboPath(sv, t)}">${esc(need)}</a>`, svc: esc(sv.short.toLowerCase()) });
+  }).join(' ');
+  const nearHtml = near.map((n) => fill(pick(P.nearLines, t.slug + n.slug), { near: `<a href="${townPath(n)}">${esc(n.plainName)}</a>`, miles: milesBetween(t, n), dir: direction(t, n), town: esc(name), kw: 'exterior repair' })).join(' ');
   const faqs = [
-    [`Do you serve all of ${t.plainName}?`, `Yes. We work throughout ${t.plainName}${secs.length > 1 ? `, including ${listSentence(secs)}` : ''}, and in nearby ${listSentence(t.nearby.slice(0, 4).map((n) => n.plainName))}.`],
-    [`What exterior issues are common for ${t.plainName} homes?`, `${ch.housing} The most common issues we see are: ${ch.challenges.map((x) => x.toLowerCase()).join('; ')}.`],
-    [`Do you offer free estimates in ${t.plainName}?`, `Absolutely. Call ${site.phone} or request an estimate online and we’ll schedule a visit to your ${t.plainName} home.`],
+    [`Who provides roofing and exterior repair in ${name}, NJ?`, pick([
+      `Exterior Home Repair Plus covers ${name}${secs.length ? `, including ${listSentence(secs)}` : ''}. Call ${site.phone} for a free estimate.`,
+      `Local homeowners in ${name} call Exterior Home Repair Plus at ${site.phone} for roofs, siding, gutters, windows, doors and decks.`,
+      `${name} is part of our core service area — roofing, siding and every other exterior job. Free estimates at ${site.phone}.`,
+    ], t.slug + 'f1')],
+    [`What exterior issues are common for ${name} homes?`, `In ${name} we most often see ${listSentence(shuffled(ch.challenges, t.slug).slice(0, 3).map((x) => x.toLowerCase()))}.`],
+    [`Which towns near ${name} do you serve?`, `We regularly work in ${listSentence(near.map((n) => `${n.plainName} (${milesBetween(t, n)} mi ${direction(t, n)})`))}, plus every other town in ${t.county.name}.`],
   ];
+  const cards = `<div class="card-grid">${svcOrder.map((s) => `<a class="svc-card" href="${comboPath(s, t)}">
+    <span class="svc-ico">${icon(s.icon)}</span>
+    <h3>${esc(s.name)} in ${esc(name)}</h3>
+    <p>${esc(pick(P.svc[s.slug].needs, t.slug + s.slug).replace(/^./, (c) => c.toUpperCase()))} — and more.</p>
+    <span class="svc-more">${esc(s.short)} in ${esc(name)} ${icon('arrow')}</span>
+  </a>`).join('')}</div>`;
   const body = `
-${hero({ eyebrow: `${esc(t.plainName)} · ${esc(t.county.name)}, NJ`, h1: `Roofing, Siding &amp; Exterior Repair in ${esc(t.plainName)}, NJ`, lead: `${esc(t.note)} Exterior Home Repair Plus is the local contractor ${esc(t.plainName)} homeowners call for roofing, siding, gutters, windows, doors, decks and storm damage repair.`, form: C.estimateForm({ town: t.plainName }), crumbsAbove: true })}
+${hero({ eyebrow: `${esc(name)} · ${esc(t.county.name)}, NJ`, h1: `Roofing, Siding &amp; Exterior Repair in ${esc(name)}, NJ`, lead: `${esc(t.note)}`, form: C.estimateForm({ town: name }), crumbsAbove: true, trust: false })}
 <section class="section"><div class="wrap content-grid">
   <article class="prose">
-    <h2>Your ${esc(t.plainName)} Exterior Home Experts</h2>
-    <p>${esc(t.plainName)} is ${an(ch.label)} ${esc(ch.label)} community in ${esc(t.county.name)}. ${esc(ch.housing)}</p>
-    <p>${esc(ch.tip)}</p>
-    <h3>Common exterior challenges in ${esc(t.plainName)}</h3>
-    ${C.checkList(ch.challenges)}
-    ${secs.length ? `<h3>Neighborhoods &amp; sections we serve</h3><ul class="chips chips-plain">${secs.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+    <div class="answer" id="answer"><p class="answer-label">Quick answer</p><p>${strong(`Exterior Home Repair Plus is a local exterior contractor serving ${esc(name)}, NJ`)} — roofing, siding, gutters, windows, doors, decks and storm damage repair across ${esc(secs.slice(0, 4).join(', ') || name)}. Free written estimates: <a href="${tel}">${site.phone}</a>.</p></div>
+    <figure class="svc-figure"><img src="/assets/img/services/home.svg" width="800" height="450" loading="lazy" decoding="async" alt="Illustration: exterior home repair for ${esc(ch.label)} homes in ${esc(name)}, NJ"><figcaption>Roofing, siding and exterior repair in ${esc(name)}, ${esc(t.county.name)}</figcaption></figure>
+    <h2>Your ${esc(name)} Exterior Home Experts</h2>
+    <p>${esc(name)} is ${an(ch.label)} ${esc(ch.label)} community in <a href="/service-areas/${t.county.slug}/">${esc(t.county.name)}</a>. ${esc(charText(t, 'housing'))}</p>
+    <p>${esc(charText(t, 'tip'))}</p>
+    ${secs.length ? `<h2>Neighborhoods We Serve in ${esc(name)}</h2><p>${sectionHtml}</p>` : ''}
+    ${glance(t, null, 'town' + t.slug)}
+    <h2>Serving ${esc(name)} and Surrounding Towns</h2>
+    <p>${nearHtml}</p>
+    <h2>Why ${esc(name)} Homeowners Call Us</h2>
+    <p>${whyParagraph({ town: name, county: t.county.name, section: secs[0] || name }, 'town' + t.slug)}</p>
   </article>
-  ${sidebar(null, t)}
+  <aside class="sidebar">
+    <div class="side-card side-cta"><h3>Free estimates in ${esc(name)}</h3><p>${esc(pick([`Call the crew that works in ${name} every week.`, `Fast scheduling for ${name} homeowners.`, `Written, itemized quotes for your ${name} home.`], t.slug + 'sb'))}</p><a class="btn btn-gold btn-block" href="${tel}">${icon('phone')} ${site.phone}</a><a class="btn btn-outline btn-block" href="#estimate">Request online</a></div>
+    <div class="side-card"><h3>Towns near ${esc(name)}</h3><ul class="side-links">${t.nearby.map((n) => `<li><a href="${townPath(n)}">${icon('pin')} ${esc(n.plainName)}</a></li>`).join('')}</ul></div>
+  </aside>
 </div></section>
-${section(`${secHead('Services', `Exterior Services in ${esc(t.plainName)}, NJ`, 'Select a service to learn how we handle it for homes in your area.')}${C.serviceCards(t)}`, 'section-alt')}
-${section(`${secHead('Nearby', `Also Serving Near ${esc(t.plainName)}`, '')}<ul class="chips">${t.nearby.map((n) => `<li><a href="${townPath(n)}">${esc(n.plainName)}</a></li>`).join('')}<li><a href="/service-areas/${t.county.slug}/">All ${esc(t.county.name)} towns</a></li></ul>`)}
-${section(`${secHead('FAQ', `${esc(t.plainName)} Exterior Repair FAQ`, '')}${C.faqList(faqs)}`, 'section-alt')}
+${section(`${secHead('Services', `Exterior Services in ${esc(name)}, NJ`, `Choose a service to see how we handle it for ${esc(name)} homes.`)}${cards}`, 'section-alt')}
+${section(`${secHead('FAQ', `${esc(name)} Exterior Repair FAQ`, '')}${C.faqList(faqs)}`)}
 ${C.townDatalist()}`;
   return {
     path,
     html: layout({
       path, title, description, body, current: 'areas',
-      breadcrumbs: [['Home', '/'], ['Service Areas', '/service-areas/'], [t.county.name, `/service-areas/${t.county.slug}/`], [t.plainName, path]],
-      schema: [S.business(), S.webPage(path, title, description), C.faqSchema(faqs, path)],
+      breadcrumbs: [['Home', '/'], ['Service Areas', '/service-areas/'], [t.county.name, `/service-areas/${t.county.slug}/`], [name, path]],
+      schema: [S.business(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], place: { name, county: t.county.name, lat: t.lat, lng: t.lng } }), C.faqSchema(faqs, path)],
     }),
   };
 }
@@ -280,59 +368,92 @@ function comboPage(svc, t) {
   const path = comboPath(svc, t);
   const ch = characters[t.character];
   const secs = cleanSections(t);
-  const angle = serviceAngles[svc.slug][angleKey(t.character)];
+  const angle = pick([serviceAngles[svc.slug][angleKey(t.character)], angleAlt[svc.slug][angleKey(t.character)]], svc.slug + t.slug + 'ang');
   const name = t.plainName;
+  const pool = P.svc[svc.slug];
+  const key = svc.slug + '|' + t.slug;
+  const Kw = titleCase(svc.keyword).replace(/&/g, 'and');
   const title = brandTitle(`${titleCase(svc.keyword)} in ${name}, NJ`);
   const description = fitDesc([`${titleCase(svc.keyword)} in ${name}, NJ.`, `Free estimates: ${site.phone}.`], [hookOf(svc), `Local ${t.county.name} crew.`]);
-  const openers = [
-    `Looking for ${svc.keyword} in ${name}? Exterior Home Repair Plus serves homeowners throughout ${name} and the rest of ${t.county.name} with ${svc.name.toLowerCase()} done right the first time.`,
-    `${name} homeowners count on Exterior Home Repair Plus for dependable ${svc.keyword} — honest advice, clear written pricing and crews who treat your home like their own.`,
-    `When your ${name} home needs ${svc.keyword}, you want a local contractor who understands ${t.county.name} weather and building requirements. That’s exactly what we bring to every job.`,
-    `From ${secs[0] || name} to every corner of town, Exterior Home Repair Plus provides professional ${svc.keyword} for ${name}, NJ homes of every age and style.`,
-  ];
-  const whyLines = [
-    `${svc.name} in ${an(ch.label)} ${ch.label} town like ${name} is different from anywhere else.`,
-    `Homes in ${name} face conditions that make quality ${svc.keyword} especially important.`,
-    `Every ${name} property is different, but the local conditions are the same.`,
-  ];
+  const near = shuffled(t.nearby, key + 'nb');
+  const needs = shuffled(pool.needs, key);
+  const vars = {
+    kw: svc.keyword, Kw: svc.keyword.replace(/^./, (c) => c.toUpperCase()), svc: svc.short.toLowerCase(), town: name, county: t.county.name,
+    section: secs[hash(key) % Math.max(secs.length, 1)] || name, phone: site.phone,
+    sectionList: listSentence(shuffled(secs, key).slice(0, 3)) || name,
+    nearList: listSentence(shuffled(t.nearby, key + 'nl').slice(0, 3).map((n) => n.plainName)),
+  };
+  const sectionHtml = (secs.length ? shuffled(secs, key + 's').slice(0, 6) : [name]).map((s, i) =>
+    fill(pick(P.sectionLines, s + svc.slug), { section: esc(s), need: esc(needs[i % needs.length]), svc: esc(svc.short.toLowerCase()) })).join(' ');
+  const nearHtml = near.map((n) => fill(pick(P.nearLines, key + n.slug), { near: `<a href="${comboPath(svc, n)}">${esc(n.plainName)}</a>`, miles: milesBetween(t, n), dir: direction(t, n), town: esc(name), kw: esc(svc.keyword) })).join(' ');
+  const costs = shuffled(pool.costs, key + 'c');
+  const timing = shuffled(pool.timing, key + 't');
+  const signs = shuffled(svc.signs, key + 'g').slice(0, 3);
   const faqs = [
-    ...svc.faqs.slice(0, 3),
-    [`Do you provide ${svc.keyword} throughout ${name}?`, `Yes. We provide ${svc.name.toLowerCase()} across ${name}${secs.length > 1 ? `, including ${listSentence(secs)}` : ''}, and in nearby ${listSentence(t.nearby.slice(0, 3).map((n) => n.plainName))}.`],
-    [`How do I get a ${svc.keyword} estimate in ${name}?`, `Call ${site.phone} or fill out the form on this page. We’ll schedule a free on-site inspection at your ${name} home and give you a written, itemized estimate.`],
+    [`How much does ${svc.keyword} cost in ${name}, NJ?`, pick([
+      `Every ${name} project is priced after a free on-site inspection. The biggest factors are ${listSentence(costs.slice(0, 4))}.`,
+      `It varies by home. For ${name} properties, price mostly comes down to ${listSentence(costs.slice(1, 5))} — we put it all in writing.`,
+      `We quote ${name} jobs after seeing the home in person, since ${listSentence(costs.slice(0, 3))} change the number. Estimates are free.`,
+    ], key + 'q')],
+    [`Do you provide ${svc.keyword} in ${vars.sectionList}?`, `Yes. ${svc.name} is available everywhere in ${name}, and our ${svc.short.toLowerCase()} crews also cover ${vars.nearList}.`],
+    [`How long does ${svc.keyword} take in ${name}?`, `For a typical ${name} home: ${timing[1] || timing[0]}`.replace(/: (.)/, (m, c) => ': ' + c.toLowerCase())],
+    [`Do I need a permit for ${svc.keyword} in ${name}?`, permitAnswer(svc, name, key)],
   ];
   const others = services.filter((s) => s !== svc);
+  const related = shuffled(articles.filter((a) => a.services.includes(svc.slug)), key + 'r').slice(0, 1);
   const body = `
-${hero({ eyebrow: `${esc(svc.short)} · ${esc(name)}, NJ`, h1: `${esc(svc.name)} in ${esc(name)}, NJ`, lead: esc(pick(openers, svc.slug + t.slug)), form: C.estimateForm({ service: svc.name, town: name }), crumbsAbove: true })}
+${hero({ eyebrow: `${esc(svc.short)} · ${esc(name)}, NJ`, h1: `${esc(svc.name)} in ${esc(name)}, NJ`, lead: esc(fill(pick(P.openers, key), vars)), form: C.estimateForm({ service: svc.name, town: name }), crumbsAbove: true, trust: false })}
 <section class="section"><div class="wrap content-grid">
   <article class="prose">
-    <h2>${esc(svc.headline)} in ${esc(name)}</h2>
-    <p>${esc(svc.intro)}</p>
-    <h2>Why ${esc(name)} Homes Need It Done Right</h2>
-    <p>${esc(pick(whyLines, t.slug + svc.slug))} ${esc(t.note)}</p>
-    <p>${esc(angle)}</p>
-    <div class="callout">${icon('pin')}<div><strong>Local conditions in ${esc(name)}:</strong> ${esc(ch.challenges.slice(0, 3).join(' · '))}</div></div>
-    <h2>Signs Your ${esc(name)} Home Needs ${esc(svc.short)} Work</h2>
-    ${C.checkList(svc.signs)}
-    <h2>Our ${esc(svc.name)} Services Include</h2>
-    ${C.checkList(svc.includes)}
-    ${secs.length ? `<h2>Areas We Serve in ${esc(name)}</h2><p>We provide ${esc(svc.keyword)} in every part of ${esc(name)}, including:</p><ul class="chips chips-plain">${secs.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+    <div class="answer" id="answer"><p class="answer-label">Quick answer</p><p>${highlight(esc(fill(pick(P.answers, key), vars)), esc(`${svc.keyword} in ${name}`))}</p></div>
+    <figure class="svc-figure"><img src="/assets/img/services/${svc.slug}.svg" width="800" height="450" loading="lazy" decoding="async" alt="Illustration: ${esc(svc.name.toLowerCase())} on a ${esc(ch.label)} home in ${esc(name)}, NJ"><figcaption>${esc(svc.name)} for ${esc(name)} homes — ${esc(t.county.name)}, New Jersey</figcaption></figure>
+    ${glance(t, svc, key)}
+    <h2>${esc(Kw)} for ${esc(name)} Homes</h2>
+    <p>${esc(t.note)}</p>
+    <p>${esc(pick([`For ${name}:`, `What that means in ${name}:`, `Our approach in ${name}:`], key + 'a'))} ${esc(angle.replace(/\. /, `. ${pick([`We see it on ${vars.section} streets all the time.`, `That holds true from ${vars.section} to the edge of town.`, `${name} homes are no exception.`], key + 'x')} `))}</p>
+    <h2>${esc(pick([`Common ${svc.short} Projects Around ${name}`, `${svc.short} Work We Do in ${name} Neighborhoods`, `Typical ${name} ${svc.short} Jobs`], key + 'h1'))}</h2>
+    <p>${sectionHtml}</p>
+    <h2>${esc(pick([`Signs Your ${name} Home Needs ${svc.short} Work`, `When ${name} Homeowners Should Call About ${svc.short}`, `Is It Time? ${svc.short} Warning Signs in ${name}`], key + 'h2'))}</h2>
+    <p>${esc(pick([
+      `Watch for ${signs[0].toLowerCase()} or ${signs[1].toLowerCase()}.`,
+      `The usual red flags on ${name} homes: ${signs[0].toLowerCase()}, and ${signs[1].toLowerCase()}.`,
+      `Two things to look for around your ${name} house — ${signs[0].toLowerCase()}, and ${signs[1].toLowerCase()}.`,
+    ], key + 'sg'))}</p>
+    <p>${esc(pick([`Not sure what your ${name} home needs? We’ll inspect and give you a straight answer.`, `Seeing one of these at your ${name} home? A free inspection tells you whether it’s a repair or a replacement.`, `If any of this sounds like your house in ${name}, call us before small problems grow.`], key + 'n'))} More on <a href="/${svc.slug}/">${esc(svc.name.toLowerCase())}</a>.</p>
+    <h2>${esc(pick([`What Affects the Cost of ${Kw} in ${name}?`, `${name} ${Kw} Pricing: What Matters`, `How We Price ${Kw} in ${name}`], key + 'h3'))}</h2>
+    <p>Pricing for ${strong(esc(`${svc.keyword} in ${name}`))} depends on ${esc(listSentence(costs.slice(0, 3)))}. ${esc(ch.challenges[hash(key) % ch.challenges.length])} can also shape what your ${esc(name)} home needs.</p>
+    <h2>${esc(pick([`Scheduling ${svc.short} Work in ${name}`, `How Long ${svc.short} Takes in ${name}`, `Timing Your ${name} ${svc.short} Project`], key + 'h4'))}</h2>
+    <p>${esc(timing[0])} ${esc(pick([`We plan ${name} jobs around the forecast and keep you posted.`, `If weather shifts the schedule in ${name}, you’ll hear it from us first.`, `Crews based nearby mean ${name} projects start on time.`, `We confirm your ${name} start date in writing and text reminders the day before.`], key + 'w'))}</p>
+    <h2>${esc(svc.short)} Near ${esc(name)}</h2>
+    <p>${nearHtml}</p>
+    <h2>${esc(pick([`Why ${name} Chooses Exterior Home Repair Plus`, `A ${svc.short} Contractor ${name} Can Count On`, `Working With Us in ${name}`], key + 'h5'))}</h2>
+    <p>${whyParagraph(vars, key)}</p>
+    <p>${esc(fill(pick(P.closers, key), vars))}${related.length ? ` ${pick(['Planning ahead? Read', 'Helpful before you call:', 'Worth a look:', 'More from our crew:'], key + 'rd')} <a href="/resources/${related[0].slug}/">${esc(related[0].title)}</a>.` : ''}</p>
   </article>
-  ${sidebar(svc, t)}
+  <aside class="sidebar">
+    <div class="side-card side-cta">
+      <h3>${esc(svc.short)} in ${esc(name)}?</h3>
+      <p>${esc(pick([`Free, written estimate for your ${name} home.`, `Local crew, fast scheduling in ${name}.`, `Talk to someone who works in ${name} every week.`], key + 'sb'))}</p>
+      <a class="btn btn-gold btn-block" href="${tel}">${icon('phone')} ${site.phone}</a>
+      <a class="btn btn-outline btn-block" href="#estimate">Request online</a>
+    </div>
+    <div class="side-card"><h3>Also in ${esc(name)}</h3><ul class="side-links">${shuffled(others, key + 'o').slice(0, 6).map((s) => `<li><a href="${comboPath(s, t)}">${icon(s.icon)} ${esc(s.short)} in ${esc(name)}</a></li>`).join('')}<li><a href="${townPath(t)}">${icon('pin')} All ${esc(name)} services</a></li></ul></div>
+  </aside>
 </div></section>
-${section(`${secHead('How it works', 'Our Process', '')}${C.processSteps()}`, 'section-alt')}
-${section(`${secHead('FAQ', `${esc(svc.name)} in ${esc(name)}: FAQ`, '')}${C.faqList(faqs)}`)}
-${section(`<div class="link-cols">
-  <div><h2 class="h3">${esc(svc.name)} Near ${esc(name)}</h2><ul class="chips">${t.nearby.map((n) => `<li><a href="${comboPath(svc, n)}">${esc(svc.short)} in ${esc(n.plainName)}</a></li>`).join('')}</ul></div>
-  <div><h2 class="h3">More Services in ${esc(name)}</h2><ul class="chips">${others.map((s) => `<li><a href="${comboPath(s, t)}">${esc(s.name)}</a></li>`).join('')}</ul></div>
-</div>
-<p class="center mt"><a href="${townPath(t)}">All exterior services in ${esc(name)}</a> · <a href="/${svc.slug}/">${esc(svc.name)} across the Jersey Shore</a></p>`, 'section-alt')}
+${section(`${secHead('FAQ', `${esc(svc.name)} in ${esc(name)}: FAQ`, '')}${C.faqList(faqs)}`, 'section-alt')}
+${section(`<p class="center mt"><a href="${townPath(t)}">Exterior repair in ${esc(name)}</a> · <a href="/service-areas/${t.county.slug}/">${esc(t.county.name)} service area</a> · <a href="/${svc.slug}/">${esc(svc.name)} across the Jersey Shore</a></p>`)}
 ${C.townDatalist()}`;
   return {
     path,
     html: layout({
       path, title, description, body, current: 'services',
       breadcrumbs: [['Home', '/'], [svc.name, `/${svc.slug}/`], [`${name}, NJ`, path]],
-      schema: [S.business(), S.webPage(path, title, description), S.serviceSchema(svc, path, { name, containedIn: t.county.name }), C.faqSchema(faqs, path)],
+      schema: [
+        S.business(),
+        S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: `/assets/img/services/${svc.slug}.svg`, place: { name, county: t.county.name, lat: t.lat, lng: t.lng } }),
+        S.serviceSchema(svc, path, { name, containedIn: t.county.name }),
+        C.faqSchema(faqs, path),
+      ],
     }),
   };
 }
@@ -478,8 +599,28 @@ function notFound() {
   return p;
 }
 
+// ---------------------------------------------------------------- HTML sitemap
+function htmlSitemap() {
+  const path = '/sitemap/';
+  const title = 'Sitemap | Exterior Home Repair Plus';
+  const description = 'Every page on the Exterior Home Repair Plus website: services, service areas, all 109 Ocean, Monmouth & Atlantic County towns and every service in every town.';
+  const main = [['Home', '/'], ['Services', '/services/'], ['Service Areas', '/service-areas/'], ['About', '/about/'], ['Contact & Free Estimates', '/contact/'], ['FAQ', '/faq/'], ['Resources', '/resources/'], ['Privacy Policy', '/privacy-policy/']];
+  const body = `
+<section class="section page-head"><div class="wrap"><p class="eyebrow">Sitemap</p><h1>Website Sitemap</h1><p class="lead">Every page on our site, organized by service and by town. Search engines can also use our <a href="/sitemap.xml">XML sitemap</a>.</p></div></section>
+<section class="section"><div class="wrap sitemap">
+  <div class="sitemap-cols">
+    <div><h2 class="h3">Main pages</h2><ul>${main.map(([n, p]) => `<li><a href="${p}">${n}</a></li>`).join('')}</ul></div>
+    <div><h2 class="h3">Services</h2><ul>${services.map((s) => `<li><a href="/${s.slug}/">${esc(s.name)}</a></li>`).join('')}</ul></div>
+    <div><h2 class="h3">Homeowner resources</h2><ul>${articles.map((a) => `<li><a href="/resources/${a.slug}/">${esc(a.title)}</a></li>`).join('')}</ul></div>
+  </div>
+  ${counties.map((c) => `<h2>${esc(c.name)}</h2>
+  <div class="sitemap-towns">${c.towns.map((t) => `<details><summary><a href="${townPath(t)}">${esc(t.name)}</a></summary><ul>${services.map((s) => `<li><a href="${comboPath(s, t)}">${esc(s.name)} in ${esc(t.plainName)}</a></li>`).join('')}</ul></details>`).join('')}</div>`).join('')}
+</div></section>`;
+  return { path, html: layout({ path, title, description, body, breadcrumbs: [['Home', '/'], ['Sitemap', path]], schema: [S.business(), S.webPage(path, title, description, 'CollectionPage')] }) };
+}
+
 function allPages() {
-  const pages = [home(), servicesIndex(), areasIndex(), about(), contact(), faqPage(), resourcesIndex()];
+  const pages = [home(), servicesIndex(), areasIndex(), about(), contact(), faqPage(), resourcesIndex(), htmlSitemap()];
   services.forEach((s) => pages.push(serviceHub(s)));
   counties.forEach((c) => pages.push(countyPage(c)));
   towns.forEach((t) => pages.push(townPage(t)));

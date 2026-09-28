@@ -113,3 +113,110 @@ const serviceAngles = {
 const angleKey = (character) => (character === 'ocean' || character === 'bay' ? 'coastal' : character === 'historic' ? 'historic' : 'inland');
 
 module.exports = { characters, serviceAngles, angleKey };
+
+// Alternate phrasings so towns of the same character don't read identically.
+const variants = {
+  ocean: {
+    housing: [
+      'Shore cottages, raised post-Sandy homes and summer rentals sit side by side here, and all of them take salt spray and sand every day.',
+      'Many homes are elevated or rebuilt, mixed with older cedar-shake capes and beach blocks of rentals — every one exposed to open-ocean weather.',
+    ],
+    tip: [
+      'Near the beach we switch to stainless or hot-dipped galvanized fasteners and follow high-wind nailing schedules, because standard hardware corrodes fast.',
+      'Ocean exposure calls for sealed flashing, corrosion-proof hardware and wind-rated materials — details we never skip on a shore house.',
+    ],
+  },
+  bay: {
+    housing: [
+      'Lagoon ranches, raised capes and older bungalows line the water here, many of them updated after Superstorm Sandy.',
+      'Homes along the bay, rivers and lagoons range from 1950s bungalows to elevated rebuilds, with plenty of split-levels in between.',
+    ],
+    tip: [
+      'Wind off open water pushes rain sideways, so we focus on flashing, sealed seams and moisture-resistant trim on bay-front homes.',
+      'Humidity near the water feeds mildew and rot, which is why we lean on PVC trim, good ventilation and careful flashing here.',
+    ],
+  },
+  historic: {
+    housing: [
+      'Victorian porches, four-squares and older colonials with original wood siding and detailed trim define the streetscape.',
+      'Much of the housing predates World War II — ornate trim, deep porches and wood clapboard that deserve careful work.',
+    ],
+    tip: [
+      'We match original trim profiles and reveals, and use rot-proof PVC where it won’t change the look of an older home.',
+      'Older homes reward patience: we repair what can be saved, replicate what can’t, and respect any historic-district rules.',
+    ],
+  },
+  suburban: {
+    housing: [
+      'Streets are lined with colonials, split-levels, ranches and capes from the 1960s through the 2000s, many on their first or second roof.',
+      'Neighborhoods here were mostly built between the ’60s and early 2000s, so original windows, siding and roofs are reaching the end of the road.',
+    ],
+    tip: [
+      'Homes built in the same era tend to share weak spots — thin attic ventilation, undersized gutters and missing flashing — and we fix them properly.',
+      'On established homes we look past the obvious problem to the cause, like poor ventilation or gutters that can’t keep up with modern downpours.',
+    ],
+  },
+  pines: {
+    housing: [
+      'Houses sit under oaks and pitch pines on wooded lots, from ranches in adult communities to newer two-story homes.',
+      'Tree-covered lots are the norm, with ranch homes, capes and newer colonials tucked into the woods.',
+    ],
+    tip: [
+      'Heavy shade means moss, needles and damp trim, so we recommend gutter guards, algae-resistant shingles and strong attic ventilation.',
+      'Under this much tree cover, keeping water moving is everything — guards, properly pitched gutters and breathable roofs make the difference.',
+    ],
+  },
+  rural: {
+    housing: [
+      'Farmhouses, custom homes, barns and detached garages spread across larger lots, often with long, complex roof lines.',
+      'Properties tend to be big — estate homes, older farmhouses and outbuildings exposed to wind across open fields.',
+    ],
+    tip: [
+      'Bigger properties need planning, clean job sites and crews used to complex roofs — and we can handle barns and garages in the same project.',
+      'Open fields mean more wind, so we pay close attention to fastening and edge details on large, exposed roofs.',
+    ],
+  },
+  urban: {
+    housing: [
+      'Twins, row homes and multi-family buildings sit close together, often with shared walls and tight access.',
+      'Dense blocks of older homes and multi-unit buildings make access, staging and neighbor-friendly work essential.',
+    ],
+    tip: [
+      'On tight lots we plan dumpsters, ladders and parking in advance so the job moves fast without blocking the street.',
+      'Attached homes need careful tie-ins at shared roofs and walls — we coordinate so neighbors aren’t affected.',
+    ],
+  },
+};
+module.exports.variants = variants;
+
+// Second phrasing of each service × area-type angle.
+const angleAlt = {
+  'roof-replacement': { coastal: 'Wind uplift is the enemy of shore roofs, so we seal starter strips, use six nails per shingle and install ice & water shield well beyond the code minimum.', historic: 'Old plank decking, layered shingles and tricky dormers are common; we tear off completely and rebuild the details so the new roof suits the house.', inland: 'Second-generation roofs here often failed early because of poor ventilation — we correct intake and exhaust while the roof is open.' },
+  'roof-repair': { coastal: 'Salt and wind loosen flashing and lift shingle tabs; we re-secure and seal with materials meant for coastal exposure.', historic: 'On older roofs we trace water past old patches to the real entry point, often at a chimney or valley.', inland: 'Tree limbs, worn boots and aging flashing cause most inland leaks — small fixes that stop big ceiling damage.' },
+  siding: { coastal: 'Coastal siding needs taped house wrap, careful window flashing and a high-wind fastening schedule to keep water out.', historic: 'We match older reveals and profiles so new siding looks like it has always been part of the house.', inland: 'Swapping tired first-generation vinyl for heavier or insulated panels changes the look of a house overnight.' },
+  gutters: { coastal: 'Shore downpours arrive fast and sideways; oversized gutters on hidden hangers keep up and stay attached.', historic: 'We size and style gutters to fit older architecture, including half-round, and move water away from old foundations.', inland: 'Oaks and pines fill gutters quickly — micro-mesh guards on seamless runs keep things flowing.' },
+  windows: { coastal: 'Near the water, design-pressure ratings and corrosion-resistant hardware matter as much as energy efficiency.', historic: 'Grille patterns and sash proportions matter on older homes; we pick windows that respect the original look.', inland: 'Replacing foggy builder-grade units with Low-E glass is one of the fastest comfort upgrades you can make.' },
+  doors: { coastal: 'Fiberglass slabs, composite frames and stainless hardware stand up to salt and humidity far better than steel or wood.', historic: 'Traditional panel styles and rebuilt jambs keep a new door in character with an older facade.', inland: 'A tight-sealing insulated entry door improves comfort, security and curb appeal all at once.' },
+  decks: { coastal: 'Salt eats ordinary fasteners, so shore decks get stainless or hot-dipped hardware and flashed ledgers.', historic: 'Porch rebuilds on older homes blend traditional columns and rails with modern rot-resistant materials.', inland: 'Many older decks lack proper ledger bolts or footings — we rebuild to current code with low-maintenance boards.' },
+  'soffit-fascia': { coastal: 'Wind-driven rain and salt rot bare wood trim; aluminum or PVC wrapping ends the repaint-and-repair cycle.', historic: 'Decorative roofline trim can be replicated in PVC so it keeps its character without the rot.', inland: 'When gutters overflow under trees, fascia is the first thing to rot — we fix the trim and the cause.' },
+  'storm-damage-repair': { coastal: 'Coastal storms hit here first; we secure roofs and siding quickly and document everything for insurance.', historic: 'Storm repairs on older homes need matching materials and careful carpentry, not quick patches.', inland: 'Inland storm damage usually comes from falling trees — we secure the house, then restore it properly.' },
+  'exterior-painting': { coastal: 'Sun and salt break paint down fast, so we prime bare wood, use premium acrylics and caulk every joint.', historic: 'Multi-color schemes highlight period details, and careful prep protects old wood for years.', inland: 'Shade breeds mildew; washing, treating and priming keep fresh paint clean and bonded.' },
+  'carpentry-wood-rot': { coastal: 'Humidity and spray rot sills and porch posts quickly; PVC and treated lumber stop it from coming back.', historic: 'We save original trim where we can and replicate profiles where we can’t.', inland: 'Shaded trim stays damp and rots faster — we rebuild with rot-proof materials and fix the drainage.' },
+  'power-washing': { coastal: 'Salt film and sand dull a house quickly; a yearly soft wash protects paint, siding and glass.', historic: 'Gentle, low-pressure washing protects older paint and delicate trim.', inland: 'Soft washing removes green algae and mildew from shaded walls and keeps it from returning quickly.' },
+};
+module.exports.angleAlt = angleAlt;
+
+// More town-description phrasings per area type.
+const moreVariants = {
+  ocean: { housing: ['From beach bungalows to large new builds on pilings, homes here share one thing: constant exposure to wind, salt and sand.', 'Rental cottages, year-round homes and elevated rebuilds line these blocks, all within reach of the ocean breeze.'], tip: ['Everything we install at the beach is chosen for corrosion resistance and high wind ratings.', 'We treat every oceanfront job as a high-wind job — fastening, flashing and sealing to match.'] },
+  bay: { housing: ['Capes, ranches and raised homes follow the lagoons and shoreline, with plenty of older homes getting modern upgrades.', 'Waterfront streets mix original bungalows with homes rebuilt higher after recent storms.'], tip: ['Along the water we detail every opening carefully, since wind-driven rain finds any gap.', 'Moisture is the main enemy near the bay, so ventilation and rot-proof trim are part of every plan.'] },
+  historic: { housing: ['Porch-front homes, older colonials and Victorian details give these streets their character.', 'You will find original clapboard, decorative trim and homes more than a century old.'], tip: ['We are careful with older homes — matching what is there and upgrading only what is out of sight.', 'Where rules apply, we plan work to fit historic guidelines from the start.'] },
+  suburban: { housing: ['Subdivisions of colonials, bi-levels and ranches make up most neighborhoods, many built in the ’80s and ’90s.', 'Much of the housing went up in waves from the ’60s through the 2000s, and those original exteriors are showing their age.'], tip: ['We look for builder shortcuts — missing kick-out flashing, thin ventilation, small gutters — and correct them.', 'Upgrading exteriors from this era is about fixing the original weak points, not just replacing materials.'] },
+  pines: { housing: ['Wooded lots with ranches, capes and newer colonials are typical, many surrounded by pine and oak.', 'Homes sit back among the trees, including large active-adult communities and newer subdivisions.'], tip: ['Needles and shade are hard on roofs and gutters, so we plan for debris and moisture from day one.', 'Guards, algae-resistant shingles and good airflow keep wooded-lot homes in better shape.'] },
+  rural: { housing: ['Larger lots hold farmhouses, custom homes and outbuildings, often with complex rooflines.', 'Estate properties and working farms bring bigger roofs, barns and detached garages.'], tip: ['We plan staging and access carefully on large properties and keep job sites tidy.', 'Wide-open exposure means extra attention to wind ratings and fastening.'] },
+  urban: { housing: ['Closely spaced homes, twins and multi-unit buildings fill these blocks.', 'Older city homes and small apartment buildings sit shoulder to shoulder here.'], tip: ['We coordinate parking, permits and debris removal before day one on tight city lots.', 'Shared walls and roofs require careful tie-ins, which we plan with neighbors in mind.'] },
+};
+for (const [k, v] of Object.entries(moreVariants)) {
+  variants[k].housing.push(...v.housing);
+  variants[k].tip.push(...v.tip);
+}

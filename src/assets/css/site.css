@@ -367,3 +367,27 @@ ul, ol { padding-left: 1.2em; }
 .hero-grid > *, .content-grid > *, .split > *, .contact-grid > * { min-width: 0; }
 h1, h2 { overflow-wrap: break-word; }
 @media (max-width: 640px) { h1 { font-size: clamp(1.75rem, 8.2vw, 2.4rem); } }
+/* Direct-answer block, "at a glance" facts and service illustrations */
+.answer { background: var(--paper); border-left: 5px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; padding: 1em 1.2em; margin: 0 0 1.6em; }
+.answer p { margin: 0; }
+.answer .answer-label { font-family: var(--head); text-transform: uppercase; letter-spacing: .12em; font-size: .8rem; color: var(--blue); font-weight: 600; margin-bottom: .3em; }
+.glance { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 1.2em 1.4em; margin: 1.6em 0; background: var(--white); }
+.glance .h3 { margin-top: 0; }
+.glance dl { margin: 0; display: grid; gap: .5em; }
+.glance dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 1em; padding-bottom: .5em; border-bottom: 1px dashed var(--line); }
+.glance dl > div:last-child { border-bottom: 0; padding-bottom: 0; }
+.glance dt { font-weight: 700; color: var(--ink); font-size: .92rem; }
+.glance dd { margin: 0; font-size: .95rem; }
+.svc-figure { margin: 0 0 1.6em; }
+.svc-figure img { width: 100%; height: auto; border-radius: var(--radius-lg); background: var(--ink); }
+.svc-figure figcaption { font-size: .85rem; color: var(--muted); margin-top: .5em; }
+@media (max-width: 640px) { .glance dl > div { grid-template-columns: 1fr; gap: .1em; } }
+/* HTML sitemap */
+.sitemap-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-bottom: 40px; }
+.sitemap ul { padding-left: 1.1em; margin: 0; }
+.sitemap li { padding: .15em 0; }
+.sitemap-towns { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 24px; margin-bottom: 36px; }
+.sitemap-towns details { border-bottom: 1px dashed var(--line); padding: .35em 0; }
+.sitemap-towns summary { cursor: pointer; font-weight: 600; }
+.sitemap-towns ul { font-size: .9rem; margin-top: .4em; }
+@media (max-width: 800px) { .sitemap-cols { grid-template-columns: 1fr; } }

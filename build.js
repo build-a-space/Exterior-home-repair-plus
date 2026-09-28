@@ -68,7 +68,7 @@ function build() {
   for (const p of indexable) {
     if (p.path.startsWith('/service-areas/')) groups.areas.push(p);
     else if (/^\/[^/]+\/[^/]+-nj\/$/.test(p.path)) groups.local.push(p);
-    else if (p.path.split('/').length === 3 && !['/about/', '/contact/', '/faq/', '/resources/', '/services/', '/privacy-policy/'].includes(p.path) && p.path !== '/') groups.services.push(p);
+    else if (p.path.split('/').length === 3 && !['/about/', '/contact/', '/faq/', '/resources/', '/services/', '/privacy-policy/', '/sitemap/'].includes(p.path) && p.path !== '/') groups.services.push(p);
     else groups.core.push(p);
   }
   const priority = (p) => (p.path === '/' ? '1.0' : groups.services.includes(p) ? '0.9' : /^\/service-areas\/[^/]+\/$/.test(p.path) ? '0.8' : groups.local.includes(p) ? '0.6' : '0.7');
@@ -85,7 +85,7 @@ function build() {
       .join('\n')}\n</sitemapindex>\n`
   );
 
-  fs.writeFileSync(path.join(DIST, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /thank-you/\n\nSitemap: ${site.url}/sitemap.xml\n`);
+  fs.writeFileSync(path.join(DIST, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /thank-you/\n\n# Plain-language site summary for AI assistants: ${site.url}/llms.txt\nSitemap: ${site.url}/sitemap.xml\n`);
 
   fs.writeFileSync(
     path.join(DIST, 'site.webmanifest'),
@@ -102,6 +102,39 @@ function build() {
       ],
     }, null, 2)
   );
+
+  // Service illustrations
+  const { art } = require('./src/lib/illustrations');
+  fs.mkdirSync(path.join(DIST, 'assets/img/services'), { recursive: true });
+  for (const [slug, svg] of Object.entries(art)) fs.writeFileSync(path.join(DIST, 'assets/img/services', `${slug}.svg`), svg);
+
+  // llms.txt — plain-language summary for AI answer engines (https://llmstxt.org)
+  const services = require('./src/data/services');
+  const { counties } = require('./src/data/areas');
+  const articles = require('./src/data/articles');
+  fs.writeFileSync(path.join(DIST, 'llms.txt'), [
+    `# ${site.name}`,
+    '',
+    `> ${site.name} is an exterior home repair contractor serving Ocean County, Monmouth County and Atlantic County, New Jersey (109 municipalities). Services: ${services.map((s) => s.name.toLowerCase()).join(', ')}. Phone ${site.phone}, email ${site.email}. Free written estimates.`,
+    '',
+    '## Services',
+    ...services.map((s) => `- [${s.name}](${site.url}/${s.slug}/): ${s.blurb}`),
+    '',
+    '## Service areas',
+    ...counties.map((c) => `- [${c.name}, NJ](${site.url}/service-areas/${c.slug}/): ${c.towns.map((t) => t.plainName).join(', ')}`),
+    '',
+    '## Pages for each service in each town',
+    `- Pattern: ${site.url}/{service}/{town}-nj/ — e.g. ${site.url}/roof-replacement/toms-river-nj/`,
+    `- Full list: ${site.url}/sitemap/`,
+    '',
+    '## Resources',
+    ...articles.map((a) => `- [${a.title}](${site.url}/resources/${a.slug}/): ${a.description}`),
+    '',
+    '## Contact',
+    `- [Contact & free estimates](${site.url}/contact/)`,
+    `- Hours: ${site.hours.map((h) => `${h.days} ${h.close ? `${h.open}–${h.close}` : h.open}`).join('; ')}`,
+    '',
+  ].join('\n'));
 
   fs.writeFileSync(path.join(DIST, 'favicon.ico'), pngToIco(fs.readFileSync(path.join(SRC, 'assets/img/favicon-48.png')), 48));
 

@@ -42,6 +42,10 @@ for (const f of files) {
     if (descs.has(desc)) errors.push(`${rel}: duplicate description with ${descs.get(desc)}`);
     descs.set(desc, rel);
   }
+  for (const m of html.matchAll(/<img\b[^>]*>/g)) {
+    if (!/\balt="[^"]+"/.test(m[0])) errors.push(`${rel}: <img> without alt text`);
+    if (!/\bwidth="\d+"/.test(m[0]) || !/\bheight="\d+"/.test(m[0])) errors.push(`${rel}: <img> without width/height`);
+  }
   for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
     try { JSON.parse(m[1]); } catch (e) { errors.push(`${rel}: invalid JSON-LD`); }
   }
