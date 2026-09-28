@@ -363,3 +363,7 @@ ul, ol { padding-left: 1.2em; }
   .nav-open::after { content: ''; position: fixed; inset: 0; background: rgba(0, 0, 0, .55); z-index: 45; }
   .nav-open .site-header { z-index: 55; }
 }
+/* Keep long words (e.g. "INSTALLATION") from forcing horizontal scroll on phones */
+.hero-grid > *, .content-grid > *, .split > *, .contact-grid > * { min-width: 0; }
+h1, h2 { overflow-wrap: break-word; }
+@media (max-width: 640px) { h1 { font-size: clamp(1.75rem, 8.2vw, 2.4rem); } }
