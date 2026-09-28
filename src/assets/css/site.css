@@ -391,3 +391,6 @@ h1, h2 { overflow-wrap: break-word; }
 .sitemap-towns summary { cursor: pointer; font-weight: 600; }
 .sitemap-towns ul { font-size: .9rem; margin-top: .4em; }
 @media (max-width: 800px) { .sitemap-cols { grid-template-columns: 1fr; } }
+/* Dropdowns sit above the header's blue trim line */
+.site-header::after { z-index: 1; }
+.menu { z-index: 5; }

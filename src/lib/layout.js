@@ -1,5 +1,6 @@
 const site = require('../data/site');
 const services = require('../data/services');
+const articles = require('../data/articles');
 const { counties } = require('../data/areas');
 const { icon } = require('./icons');
 
@@ -37,8 +38,11 @@ function header(current) {
       <ul class="nav-list">
         <li class="has-menu"><a href="/services/"${is('services')}>Services ${icon('chevron')}</a><ul class="menu menu-services">${svcLinks}<li class="menu-all"><a href="/services/">All exterior services →</a></li></ul></li>
         <li class="has-menu"><a href="/service-areas/"${is('areas')}>Service Areas ${icon('chevron')}</a><ul class="menu">${areaLinks}<li class="menu-all"><a href="/service-areas/">All 109 towns →</a></li></ul></li>
-        <li><a href="/about/"${is('about')}>About</a></li>
-        <li><a href="/resources/"${is('resources')}>Resources</a></li>
+        <li class="has-menu"><a href="/about/"${current === 'about' || current === 'resources' ? ' aria-current="page"' : ''}>About ${icon('chevron')}</a><ul class="menu">
+          <li><a href="/about/">${icon('users')}<span>About Us</span></a></li>
+          <li><a href="/resources/">${icon('doc')}<span>Homeowner Resources</span></a></li>
+          ${articles.map((a) => `<li><a href="/resources/${a.slug}/">${icon('arrow')}<span>${esc(a.title)}</span></a></li>`).join('')}
+        </ul></li>
         <li><a href="/faq/"${is('faq')}>FAQ</a></li>
         <li><a href="/contact/"${is('contact')}>Contact</a></li>
       </ul>
