@@ -1,0 +1,22 @@
+{
+  "name": "exterior-home-repair-plus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SEO-first Node.js website for Exterior Home Repair Plus — roofing, siding, gutters, windows, doors, decks & storm repair across Ocean, Monmouth & Atlantic County, NJ.",
+  "main": "server.js",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node server.js",
+    "dev": "node build.js && node server.js",
+    "test": "node build.js && node scripts/check-site.js",
+    "logo": "npm i --no-save sharp && node scripts/process-logo.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "compression": "^1.7.4",
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.16"
+  }
+}
