@@ -1,0 +1,4 @@
+# Vercel serves dist/ statically plus api/estimate.js; the Express server is only for other hosts.
+server.js
+demo/
+leads.log
