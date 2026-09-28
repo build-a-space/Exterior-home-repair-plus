@@ -15,9 +15,10 @@ if (fs.existsSync(envFile)) {
 }
 
 const DIST = path.join(__dirname, 'dist');
+let ready = Promise.resolve();
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {
   console.log('dist/ not found — building site first…');
-  require('./build');
+  ready = require('./build');
 }
 
 const site = require('./src/data/site');
@@ -87,4 +88,4 @@ app.get('/healthz', (req, res) => res.type('text').send('ok'));
 app.use((req, res) => res.status(404).sendFile(path.join(DIST, '404.html')));
 
 const port = Number(process.env.PORT || 3000);
-app.listen(port, () => console.log(`${site.name} running at http://localhost:${port}`));
+ready.then(() => app.listen(port, () => console.log(`${site.name} running at http://localhost:${port}`)));

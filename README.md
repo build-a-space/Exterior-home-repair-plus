@@ -16,7 +16,8 @@ No client-side framework — pages are fully rendered for Google and load fast.
 npm install
 npm run build     # generate dist/ (≈1,450 pages)
 npm start         # http://localhost:3000
-npm test          # build + SEO/link checks (titles, descriptions, H1s, canonicals, JSON-LD, broken links)
+npm test          # build + SEO/link checks (titles, descriptions, H1s, canonicals, JSON-LD, alt text, broken links, uniqueness)
+node scripts/audit.js   # per-template SEO/AEO scorecard (see docs/SEO-AUDIT.md)
 ```
 
 Set `SITE_URL` (see `.env.example`) to the real domain before deploying — canonicals, schema and
@@ -30,8 +31,9 @@ sitemaps use it. Set `NODE_ENV=production` to enable the HTTPS/canonical-host re
 | Service hubs | `/roof-replacement/`, `/siding/`, … | 12 |
 | County pages | `/service-areas/ocean-county/` | 3 |
 | Town pages (all 109 municipalities + their sections/neighborhoods) | `/service-areas/ocean-county/toms-river/` | 109 |
+| Service × county pages | `/roof-replacement/ocean-county-nj/` | 36 |
 | Service × town pages | `/roof-replacement/toms-river-nj/` | 1,308 |
-| Resource articles | `/resources/…/` | 4 |
+| Resource articles | `/resources/…/` | 12 |
 
 ## SEO built in
 

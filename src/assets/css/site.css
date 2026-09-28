@@ -1,3 +1,12 @@
+/* Self-hosted fonts (no third-party requests) */
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 500; font-display: swap; src: url('/assets/fonts/oswald-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/oswald-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/oswald-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fonts/inter-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('/assets/fonts/inter-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/inter-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/inter-latin-700-normal.woff2') format('woff2'); }
+
 /* Exterior Home Repair Plus — brand system pulled from the logo:
    charcoal shield, brushed-steel lettering, gold "Home Repair +", royal blue trim. */
 :root {
@@ -396,3 +405,15 @@ h1, h2 { overflow-wrap: break-word; }
 .menu { z-index: 5; }
 .footer-bottom .credit a { color: var(--gold); }
 .footer-bottom .credit a:hover { text-decoration: underline; }
+/* Image thumbnails on cards, brand figure, county-service links */
+.svc-thumb, .post-thumb { display: block; width: calc(100% + 52px); max-width: none; height: auto; aspect-ratio: 16 / 9; object-fit: cover; margin: -26px -26px 14px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--ink); }
+.svc-card h3 { margin-top: .2em; }
+.brand-figure { background: var(--ink); border-radius: var(--radius-lg); padding: 24px; text-align: center; }
+.brand-figure img { max-width: 320px; margin: 0 auto; background: transparent; }
+.sidebar .brand-figure img { max-width: 100%; }
+.county-svc-links { list-style: none; padding: 0; display: grid; gap: 8px; }
+.county-svc-links a { display: flex; align-items: center; gap: .5em; padding: .7em 1em; border: 1px solid var(--line); border-radius: var(--radius); text-decoration: none; font-weight: 600; color: var(--ink); }
+.county-svc-links a:hover { border-color: var(--gold); background: var(--gold-soft); }
+.county-svc-links .ico { color: var(--blue); }
+.home-answer { max-width: 860px; margin: 0 auto 40px; }
+.center-block { margin: 0 auto; }

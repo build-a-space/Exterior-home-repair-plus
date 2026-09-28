@@ -9,7 +9,7 @@ const ROOT = __dirname;
 const SRC = path.join(ROOT, 'src');
 const DIST = path.join(ROOT, 'dist');
 
-const { assetVersion } = require('./src/lib/layout');
+const { assetVersion, ogAvailable } = require('./src/lib/layout');
 const site = require('./src/data/site');
 
 const hashOf = (file) => crypto.createHash('md5').update(fs.readFileSync(file)).digest('hex').slice(0, 10);
@@ -40,10 +40,18 @@ function pngToIco(pngBuf, size) {
   return Buffer.concat([header, pngBuf]);
 }
 
-function build() {
+async function build() {
   const t0 = Date.now();
   fs.rmSync(DIST, { recursive: true, force: true });
   copyDir(path.join(SRC, 'assets'), path.join(DIST, 'assets'));
+
+  // Illustrations + per-page share images (before rendering, so pages know which exist).
+  const { art } = require('./src/lib/illustrations');
+  fs.mkdirSync(path.join(DIST, 'assets/img/services'), { recursive: true });
+  for (const [slug, svg] of Object.entries(art)) fs.writeFileSync(path.join(DIST, 'assets/img/services', `${slug}.svg`), svg);
+  const { ogJobs } = require('./src/lib/og-jobs');
+  const made = await require('./src/lib/og').generate(DIST, SRC, ogJobs());
+  for (const k of made) ogAvailable.add(k);
 
   assetVersion.css = hashOf(path.join(SRC, 'assets/css/site.css'));
   assetVersion.js = hashOf(path.join(SRC, 'assets/js/site.js'));
@@ -73,8 +81,15 @@ function build() {
   }
   const priority = (p) => (p.path === '/' ? '1.0' : groups.services.includes(p) ? '0.9' : /^\/service-areas\/[^/]+\/$/.test(p.path) ? '0.8' : groups.local.includes(p) ? '0.6' : '0.7');
   for (const [name, list] of Object.entries(groups)) {
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${list
-      .map((p) => `  <url><loc>${site.url}${p.path}</loc><lastmod>${today}</lastmod><priority>${priority(p)}</priority></url>`)
+    // Image sitemap entries: the page's content images (raster copies where available) + its share image.
+    const imagesOf = (p) => {
+      const main = p.html.slice(p.html.indexOf('<main'), p.html.indexOf('</main>'));
+      const srcs = [...main.matchAll(/<img\b[^>]*src="(\/[^"]+)"/g)].map((m) => m[1].replace(/^(\/assets\/img\/services\/[^.]+)\.svg$/, '$1.jpg'));
+      const og = (p.html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1];
+      return [...new Set([...srcs.map((s) => site.url + s), og].filter(Boolean))].slice(0, 20);
+    };
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${list
+      .map((p) => `  <url><loc>${site.url}${p.path}</loc><lastmod>${today}</lastmod><priority>${priority(p)}</priority>${imagesOf(p).map((u) => `<image:image><image:loc>${u}</image:loc></image:image>`).join('')}</url>`)
       .join('\n')}\n</urlset>\n`;
     fs.writeFileSync(path.join(DIST, `sitemap-${name}.xml`), xml);
   }
@@ -103,10 +118,6 @@ function build() {
     }, null, 2)
   );
 
-  // Service illustrations
-  const { art } = require('./src/lib/illustrations');
-  fs.mkdirSync(path.join(DIST, 'assets/img/services'), { recursive: true });
-  for (const [slug, svg] of Object.entries(art)) fs.writeFileSync(path.join(DIST, 'assets/img/services', `${slug}.svg`), svg);
 
   // llms.txt — plain-language summary for AI answer engines (https://llmstxt.org)
   const services = require('./src/data/services');
@@ -123,7 +134,8 @@ function build() {
     '## Service areas',
     ...counties.map((c) => `- [${c.name}, NJ](${site.url}/service-areas/${c.slug}/): ${c.towns.map((t) => t.plainName).join(', ')}`),
     '',
-    '## Pages for each service in each town',
+    '## Pages for each service in each county and town',
+    `- County pattern: ${site.url}/{service}/{county}-nj/ — e.g. ${site.url}/roof-replacement/ocean-county-nj/`,
     `- Pattern: ${site.url}/{service}/{town}-nj/ — e.g. ${site.url}/roof-replacement/toms-river-nj/`,
     `- Full list: ${site.url}/sitemap/`,
     '',
@@ -141,4 +153,7 @@ function build() {
   console.log(`Built ${pages.length} pages (${indexable.length} in sitemaps: ${Object.entries(groups).map(([k, v]) => `${k} ${v.length}`).join(', ')}) in ${Date.now() - t0}ms → dist/`);
 }
 
-build();
+module.exports = build().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

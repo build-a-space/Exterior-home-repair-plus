@@ -16,8 +16,8 @@ function business(full = false) {
     url: abs('/'),
     telephone: site.phoneE164,
     email: site.email,
-    logo: abs('/assets/img/logo.png'),
-    image: abs('/assets/img/og-image.jpg'),
+    logo: { '@type': 'ImageObject', '@id': abs('/#logo'), url: abs('/assets/img/logo.png'), width: 480, height: 453, caption: site.name },
+    image: [abs('/assets/img/og-image.jpg'), abs('/assets/img/services/home.jpg')],
     priceRange: '$$',
     areaServed: [
       ...counties.map((c) => ({ '@type': 'AdministrativeArea', name: `${c.name}, NJ` })),
@@ -73,15 +73,15 @@ const webPage = (path, name, description, type = 'WebPage', opts = {}) => {
   return page;
 };
 
-const serviceSchema = (svc, path, area) => ({
+const serviceSchema = (svc, path, area, image) => ({
   '@type': 'Service',
   '@id': abs(path) + '#service',
   name: area ? `${svc.name} in ${area.name}` : svc.name,
   serviceType: svc.name,
   description: svc.blurb,
   url: abs(path),
-  provider: { '@id': BIZ_ID },
-  areaServed: area
+  ...(image ? { image: abs(image) } : {}),
+  provider: { '@id': BIZ_ID },  areaServed: area
     ? { '@type': area.type || 'City', name: `${area.name}, NJ`, ...(area.containedIn ? { containedInPlace: { '@type': 'AdministrativeArea', name: `${area.containedIn}, NJ` } } : {}) }
     : counties.map((c) => ({ '@type': 'AdministrativeArea', name: `${c.name}, NJ` })),
 });

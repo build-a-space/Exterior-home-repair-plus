@@ -35,7 +35,7 @@ const serviceCards = (townCtx) => `<div class="card-grid">${services
     const href = townCtx ? `/${s.slug}/${townCtx.slug}-nj/` : `/${s.slug}/`;
     const title = townCtx ? `${s.name} in ${townCtx.plainName}` : s.name;
     return `<a class="svc-card" href="${href}">
-    <span class="svc-ico">${icon(s.icon)}</span>
+    <img class="svc-thumb" src="/assets/img/services/${s.slug}.svg" width="320" height="180" loading="lazy" decoding="async" alt="Illustration: ${esc(s.name.toLowerCase())}${townCtx ? ` in ${esc(townCtx.plainName)}, NJ` : ' on a Jersey Shore home'}">
     <h3>${esc(title)}</h3>
     <p>${esc(s.blurb)}</p>
     <span class="svc-more">Learn more ${icon('arrow')}</span>

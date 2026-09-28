@@ -61,6 +61,12 @@ function hero({ eyebrow, h1, lead, form, crumbsAbove = false, trust = true }) {
 </section>`;
 }
 
+const csPath = (s, c) => `/${s.slug}/${c.slug}-nj/`;
+const absUrl = (p) => require('./lib/layout').abs(p);
+const svcImg = (slug) => `/assets/img/services/${slug}.jpg`;
+const figure = (slug, alt, caption) => `<figure class="svc-figure"><img src="/assets/img/services/${slug}.svg" width="800" height="450" loading="lazy" decoding="async" alt="${esc(alt)}"><figcaption>${caption}</figcaption></figure>`;
+const answerBox = (html) => `<div class="answer" id="answer"><p class="answer-label">Quick answer</p><p>${html}</p></div>`;
+const itemList = (name, items) => ({ '@type': 'ItemList', name, numberOfItems: items.length, itemListElement: items.map(([n, p], i) => ({ '@type': 'ListItem', position: i + 1, name: n, url: absUrl(p) })) });
 const section = (inner, cls = '') => `<section class="section ${cls}"><div class="wrap">${inner}</div></section>`;
 const secHead = (kicker, title, sub) => `<div class="sec-head">${kicker ? `<p class="kicker">${kicker}</p>` : ''}<h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>`;
 
@@ -93,10 +99,10 @@ ${section(`${secHead('What we do', 'Complete Exterior Home Services', 'One trust
       <p>Whether you need a single leak fixed in Toms River, new siding in Middletown or a full storm restoration in Brigantine, you get the same honest advice, clear pricing and careful workmanship.</p>
       <a class="btn btn-gold" href="/about/">About our company ${icon('arrow')}</a>
     </div>
-    <div class="art-card">${C.heroArt()}</div>
+    <div class="art-card"><img src="/assets/img/services/home.svg" width="800" height="450" loading="lazy" decoding="async" alt="Illustration: Jersey Shore home with a new roof, siding, windows and gutters"></div>
   </div>
 </section>
-${section(`${secHead('The difference', 'Why Choose Exterior Home Repair Plus', '')}${C.whyUs()}`)}
+${section(`<div class="home-answer">${answerBox(`<strong>Exterior Home Repair Plus is a Jersey Shore exterior contractor</strong> serving all 109 towns in Ocean, Monmouth and Atlantic County, NJ. We handle roof replacement and repair, siding, gutters, windows, doors, decks, soffit &amp; fascia, painting, wood rot repair, power washing and storm damage — with free written estimates at <a href="${tel}">${site.phone}</a>.`)}</div>${secHead('The difference', 'Why Choose Exterior Home Repair Plus', '')}${C.whyUs()}`)}
 ${section(`${secHead('How it works', 'Simple, Straightforward Process', '')}${C.processSteps()}`, 'section-alt')}
 ${section(`${secHead('Where we work', 'Serving Ocean, Monmouth &amp; Atlantic County', 'Local crews covering 109 Jersey Shore towns — plus every neighborhood, beach block and lagoon in between.')}
 <div class="county-cards">${counties
@@ -112,8 +118,8 @@ ${C.townDatalist()}`;
   return {
     path,
     html: layout({
-      path, title, description, body, current: 'home', bodyClass: 'home',
-      schema: [S.business(true), S.website(), S.webPage(path, title, description), C.faqSchema(faqs, path)],
+      path, title, description, body, current: 'home', bodyClass: 'home', og: 'home',
+      schema: [S.business(true), S.website(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: svcImg('home') }), C.faqSchema(faqs, path)],
     }),
   };
 }
@@ -131,8 +137,8 @@ ${C.townDatalist()}`;
   return {
     path,
     html: layout({
-      path, title, description, body, current: 'services', breadcrumbs: [['Home', '/'], ['Services', path]],
-      schema: [S.business(), S.webPage(path, title, description, 'CollectionPage'), { '@type': 'ItemList', itemListElement: services.map((s, i) => ({ '@type': 'ListItem', position: i + 1, name: s.name, url: require('./lib/layout').abs(`/${s.slug}/`) })) }],
+      path, title, description, body, current: 'services', og: 'services', breadcrumbs: [['Home', '/'], ['Services', path]],
+      schema: [S.business(), S.webPage(path, title, description, 'CollectionPage', { image: svcImg('roof-replacement') }), itemList('Exterior home services', services.map((s) => [s.name, `/${s.slug}/`]))],
     }),
   };
 }
@@ -143,12 +149,23 @@ function serviceHub(svc) {
   const title = brandTitle(`${svc.name} | Jersey Shore NJ`);
   const description = fitDesc([`${svc.name} across Ocean, Monmouth & Atlantic County, NJ.`, `Free estimates: ${site.phone}.`], [hookOf(svc)]);
   const others = services.filter((s) => s !== svc);
+  const hubFaqs = [
+    ...svc.faqs,
+    [`How much does ${svc.keyword} cost in New Jersey?`, `It depends on ${listSentence(P.svc[svc.slug].costs.slice(0, 4))}. We give a free, itemized written estimate after seeing your home.`],
+    [`Which towns do you serve for ${svc.keyword}?`, `Every municipality in Ocean, Monmouth and Atlantic County — ${towns.length} towns in all, including ${listSentence(['Toms River', 'Brick', 'Middletown', 'Long Branch', 'Egg Harbor Township'])}.`],
+  ];
+  const howTo = {
+    '@type': 'HowTo',
+    '@id': absUrl(path) + '#process',
+    name: `How ${svc.keyword} works with Exterior Home Repair Plus`,
+    step: ['Call or request an estimate online', 'Free on-site inspection with photos', 'Written, itemized estimate', 'Expert installation and final walk-through'].map((t, i) => ({ '@type': 'HowToStep', position: i + 1, name: t, text: t })),
+  };
   const body = `
 ${hero({ eyebrow: `${svc.short} · Jersey Shore, NJ`, h1: esc(svc.headline), lead: esc(svc.blurb) + ' Serving every town in Ocean, Monmouth and Atlantic County.', form: C.estimateForm({ service: svc.name }), crumbsAbove: true })}
 <section class="section"><div class="wrap content-grid">
   <article class="prose">
     <div class="answer" id="answer"><p class="answer-label">Quick answer</p><p>Exterior Home Repair Plus provides <strong>${esc(svc.keyword)} in Ocean, Monmouth and Atlantic County, NJ</strong> — ${esc(svc.blurb.charAt(0).toLowerCase() + svc.blurb.slice(1))} Free written estimates: <a href="${tel}">${site.phone}</a>.</p></div>
-    <figure class="svc-figure"><img src="/assets/img/services/${svc.slug}.svg" width="800" height="450" loading="lazy" decoding="async" alt="Illustration: ${esc(svc.name.toLowerCase())} on a Jersey Shore home"><figcaption>${esc(svc.name)} across Ocean, Monmouth &amp; Atlantic County, NJ</figcaption></figure>
+    ${figure(svc.slug, `Illustration: ${svc.name.toLowerCase()} on a Jersey Shore home`, `${esc(svc.name)} across Ocean, Monmouth &amp; Atlantic County, NJ`)}
     <h2>${esc(svc.name)} From a Local Jersey Shore Contractor</h2>
     <p>${esc(svc.intro)}</p>
     <h2>Signs You Need ${esc(svc.name)}</h2>
@@ -159,19 +176,26 @@ ${hero({ eyebrow: `${svc.short} · Jersey Shore, NJ`, h1: esc(svc.headline), lea
     <p>${esc(serviceAngles[svc.slug].coastal)}</p>
     <p>${esc(serviceAngles[svc.slug].inland)}</p>
     <p>${esc(serviceAngles[svc.slug].historic)}</p>
+    <h2>What Affects ${esc(titleCase(svc.keyword))} Cost?</h2>
+    <p>Every project is priced after a free on-site inspection. The main factors are:</p>
+    ${C.checkList(P.svc[svc.slug].costs.map((x) => x.charAt(0).toUpperCase() + x.slice(1)))}
+    <h2>How Long Does It Take?</h2>
+    <p>${esc(P.svc[svc.slug].timing.slice(0, 2).join(' '))}</p>
+    <h2>${esc(svc.name)} by County</h2>
+    <ul class="county-svc-links">${counties.map((c) => `<li><a href="${csPath(svc, c)}">${icon('pin')} ${esc(svc.name)} in ${esc(c.name)}, NJ</a></li>`).join('')}</ul>
   </article>
   ${sidebar(svc)}
 </div></section>
 ${section(`${secHead('How it works', `Our ${esc(svc.short)} Process`, '')}${C.processSteps()}`, 'section-alt')}
 ${section(`${secHead('Service areas', `${esc(svc.name)} Near You`, `Choose your town for local ${esc(svc.keyword)} information.`)}${C.countyTownLinks((t) => comboPath(svc, t), (t) => t.plainName)}`)}
-${section(`${secHead('FAQ', `${esc(svc.name)} Questions`, '')}${C.faqList(svc.faqs)}`, 'section-alt')}
+${section(`${secHead('FAQ', `${esc(svc.name)} Questions`, '')}${C.faqList(hubFaqs)}`, 'section-alt')}
 ${section(`${secHead('More services', 'Other Exterior Services', '')}<ul class="chips">${others.map((s) => `<li><a href="/${s.slug}/">${esc(s.name)}</a></li>`).join('')}</ul>`)}
 ${C.townDatalist()}`;
   return {
     path,
     html: layout({
-      path, title, description, body, current: 'services', breadcrumbs: [['Home', '/'], ['Services', '/services/'], [svc.name, path]],
-      schema: [S.business(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: `/assets/img/services/${svc.slug}.svg` }), S.serviceSchema(svc, path), C.faqSchema(svc.faqs, path)],
+      path, title, description, body, current: 'services', og: `svc-${svc.slug}`, breadcrumbs: [['Home', '/'], ['Services', '/services/'], [svc.name, path]],
+      schema: [S.business(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: svcImg(svc.slug) }), S.serviceSchema(svc, path, null, svcImg(svc.slug)), C.faqSchema(hubFaqs, path), howTo],
     }),
   };
 }
@@ -198,44 +222,120 @@ function areasIndex() {
   const description = 'Exterior Home Repair Plus serves all 109 towns in Ocean, Monmouth & Atlantic County, NJ — roofing, siding, gutters, windows, doors, decks and storm repair near you.';
   const body = `
 ${hero({ eyebrow: 'Service Areas', h1: 'Serving the Entire Jersey Shore', lead: 'We cover every municipality in Ocean, Monmouth and Atlantic County — and every neighborhood, section and village within them. Find your town below.', form: C.estimateForm(), crumbsAbove: true })}
-${section(`<div class="county-cards">${counties
+${section(`${answerBox(`<strong>Exterior Home Repair Plus serves all ${towns.length} municipalities</strong> in Ocean County (${counties[0].towns.length}), Monmouth County (${counties[1].towns.length}) and Atlantic County (${counties[2].towns.length}), New Jersey — from the Raritan Bayshore to Long Beach Island, Atlantic City and the Pinelands.`)}<div class="county-cards">${counties
   .map((c) => `<a class="county-card" href="/service-areas/${c.slug}/"><span class="county-ico">${icon('pin')}</span><h2 class="h3">${c.name}</h2><p>${esc(c.intro.split('. ')[0])}.</p><span class="svc-more">${c.towns.length} towns ${icon('arrow')}</span></a>`)
   .join('')}</div>`)}
 ${section(`${secHead('All towns', 'Find Your Town', '')}${C.countyTownLinks(townPath)}`, 'section-alt')}
+${section(`<div class="narrow center-block">${figure('home', 'Illustration: exterior home repair across Ocean, Monmouth and Atlantic County, New Jersey', 'Roofing, siding and exterior repair in all 109 Jersey Shore towns')}</div>`)}
 ${C.townDatalist()}`;
-  return { path, html: layout({ path, title, description, body, current: 'areas', breadcrumbs: [['Home', '/'], ['Service Areas', path]], schema: [S.business(true), S.webPage(path, title, description, 'CollectionPage')] }) };
+  return { path, html: layout({ path, title, description, body, current: 'areas', og: 'areas', breadcrumbs: [['Home', '/'], ['Service Areas', path]], schema: [S.business(true), S.webPage(path, title, description, 'CollectionPage', { speakable: ['#answer'], image: svcImg('home') }), itemList('Service area counties', counties.map((c) => [`${c.name}, NJ`, `/service-areas/${c.slug}/`]))] }) };
 }
 
 // ---------------------------------------------------------------- County
 function countyPage(c) {
   const path = `/service-areas/${c.slug}/`;
   const title = brandTitle(`${c.name} NJ Roofing, Siding & Exterior Repair`);
-  const description = `Roofing, siding, gutters, windows, doors, decks & storm damage repair in all ${c.towns.length} ${c.name}, NJ towns. Local, insured & free estimates. Call ${site.phone}.`;
+  const description = `Roofing, siding, gutters, windows, doors, decks & storm damage repair in all ${c.towns.length} ${c.name}, NJ towns. Free estimates: ${site.phone}.`;
+  const byType = {};
+  for (const t of c.towns) (byType[t.character] = byType[t.character] || []).push(t);
   const faqs = [
     [`Do you serve all of ${c.name}?`, `Yes — all ${c.towns.length} municipalities in ${c.name}, including ${listSentence(c.towns.slice(0, 6).map((t) => t.plainName))} and every neighborhood in between.`],
     [`What exterior problems are most common in ${c.name}?`, c.climate],
+    [`What is the county seat of ${c.name}?`, `${c.seat} is the county seat of ${c.name}, and our crews work there and throughout the county every week.`],
     ['How quickly can you come out for an estimate?', `In most cases we can schedule an inspection within a few days, and we prioritize active leaks and storm damage. Call ${site.phone}.`],
   ];
+  const cards = `<div class="card-grid">${services.map((s) => `<a class="svc-card" href="${csPath(s, c)}">
+    <img class="svc-thumb" src="/assets/img/services/${s.slug}.svg" width="320" height="180" loading="lazy" decoding="async" alt="Illustration: ${esc(s.name.toLowerCase())} in ${esc(c.name)}, NJ">
+    <h3>${esc(s.name)} in ${esc(c.name)}</h3>
+    <p>${esc(s.blurb)}</p>
+    <span class="svc-more">${esc(s.short)} in ${esc(c.name)} ${icon('arrow')}</span>
+  </a>`).join('')}</div>`;
   const body = `
 ${hero({ eyebrow: `${c.name}, New Jersey`, h1: `Exterior Home Repair in ${c.name}, NJ`, lead: esc(c.intro), form: C.estimateForm(), crumbsAbove: true })}
 <section class="section"><div class="wrap content-grid">
   <article class="prose">
+    ${answerBox(`<strong>Exterior Home Repair Plus serves all ${c.towns.length} towns in ${esc(c.name)}, NJ</strong> for roofing, siding, gutters, windows, doors, decks and storm damage repair. The county seat is ${esc(c.seat)}. Free estimates: <a href="${tel}">${site.phone}</a>.`)}
+    ${figure('home', `Illustration: exterior home repair in ${c.name}, New Jersey`, `Roofing, siding and exterior repair across ${esc(c.name)}`)}
     <h2>Exterior Contractor for Every ${esc(c.name)} Town</h2>
     <p>${esc(c.climate)}</p>
     <p>Whether you need a new roof, replacement siding, seamless gutters, energy-efficient windows, a new front door, a deck rebuild or emergency storm repair, Exterior Home Repair Plus brings the same careful workmanship to every job in ${esc(c.name)}. The county seat is ${esc(c.seat)}, and our crews work throughout the county every week.</p>
-    <h2>Towns We Serve in ${esc(c.name)}</h2>
+    <h2>${esc(c.name)} Towns by Area Type</h2>
+    ${Object.entries(byType).map(([k, list]) => `<h3>${esc(characters[k].label.replace(/^./, (x) => x.toUpperCase()))} towns</h3><p>${esc(charText(list[0], 'housing'))} Towns: ${list.map((t) => `<a href="${townPath(t)}">${esc(t.plainName)}</a>`).join(', ')}.</p>`).join('')}
+    <h2>All ${c.towns.length} Towns We Serve in ${esc(c.name)}</h2>
     <ul class="town-grid">${c.towns.map((t) => `<li><a href="${townPath(t)}"><strong>${esc(t.name)}</strong><small>${esc(cleanSections(t).slice(0, 3).join(' · '))}</small></a></li>`).join('')}</ul>
   </article>
   ${sidebar()}
 </div></section>
-${section(`${secHead('Services', `Our Services in ${esc(c.name)}`, '')}${C.serviceCards()}`, 'section-alt')}
+${section(`${secHead('Services', `Our Services in ${esc(c.name)}`, '')}${cards}`, 'section-alt')}
 ${section(`${secHead('FAQ', `${esc(c.name)} Questions`, '')}${C.faqList(faqs)}`)}
 ${C.townDatalist()}`;
   return {
     path,
     html: layout({
-      path, title, description, body, current: 'areas', breadcrumbs: [['Home', '/'], ['Service Areas', '/service-areas/'], [c.name, path]],
-      schema: [S.business(), S.webPage(path, title, description), C.faqSchema(faqs, path)],
+      path, title, description, body, current: 'areas', og: `county-${c.slug}`, breadcrumbs: [['Home', '/'], ['Service Areas', '/service-areas/'], [c.name, path]],
+      schema: [S.business(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: svcImg('home') }), C.faqSchema(faqs, path), itemList(`Towns served in ${c.name}`, c.towns.map((t) => [`${t.plainName}, NJ`, townPath(t)]))],
+    }),
+  };
+}
+
+// ---------------------------------------------------------------- Service × County
+function countyServicePage(svc, c) {
+  const path = csPath(svc, c);
+  const key = svc.slug + '|' + c.slug;
+  const title = brandTitle(`${titleCase(svc.keyword)} in ${c.name}, NJ`);
+  const description = fitDesc([`${titleCase(svc.keyword)} in all ${c.towns.length} ${c.name}, NJ towns.`, `Free estimates: ${site.phone}.`], [hookOf(svc)]);
+  const byType = {};
+  for (const t of c.towns) (byType[t.character] = byType[t.character] || []).push(t);
+  const faqs = [
+    [`Which ${c.name} towns do you serve for ${svc.keyword}?`, `All ${c.towns.length}: ${listSentence(c.towns.map((t) => t.plainName))}.`],
+    [`How much does ${svc.keyword} cost in ${c.name}?`, `It depends on ${listSentence(P.svc[svc.slug].costs.slice(0, 4))}. Every estimate is free, written and itemized.`],
+    [`How long does ${svc.keyword} take in ${c.name}?`, P.svc[svc.slug].timing[0]],
+    ...svc.faqs.filter((f) => !/how long/i.test(f[0])).slice(0, 1),
+  ];
+  // Groups sharing an area type (e.g. bay + ocean = coastal) each get different advice.
+  const used = {};
+  const angleFor = (k) => {
+    const g = angleKey(k);
+    const n = (used[g] = (used[g] || 0) + 1) - 1;
+    return [serviceAngles[svc.slug][g], angleAlt[svc.slug][g], characters[k].tip][Math.min(n, 2)];
+  };
+  const others = services.filter((s) => s !== svc);
+  const body = `
+${hero({ eyebrow: `${esc(svc.short)} · ${esc(c.name)}, NJ`, h1: `${esc(svc.name)} in ${esc(c.name)}, NJ`, lead: `${esc(svc.blurb)} Serving all ${c.towns.length} ${esc(c.name)} towns.`, form: C.estimateForm({ service: svc.name }), crumbsAbove: true, trust: false })}
+<section class="section"><div class="wrap content-grid">
+  <article class="prose">
+    ${answerBox(`Exterior Home Repair Plus provides <strong>${esc(svc.keyword)} in ${esc(c.name)}, NJ</strong> — every town from ${esc(c.towns[0].plainName)} to ${esc(c.towns[c.towns.length - 1].plainName)}. Free written estimates: <a href="${tel}">${site.phone}</a>.`)}
+    ${figure(svc.slug, `Illustration: ${svc.name.toLowerCase()} on a ${c.name}, NJ home`, `${esc(svc.name)} across ${esc(c.name)}, New Jersey`)}
+    <h2>${esc(svc.name)} Across ${esc(c.name)}</h2>
+    <p>${esc(svc.intro)}</p>
+    <p>${esc(c.climate)}</p>
+    <h2>${esc(svc.short)} by Area Type in ${esc(c.name)}</h2>
+    ${Object.entries(byType).map(([k, list]) => `<h3>${esc(characters[k].label.replace(/^./, (x) => x.toUpperCase()))} towns</h3><p>${esc(angleFor(k))}</p><p>${list.map((t) => `<a href="${comboPath(svc, t)}">${esc(svc.short)} in ${esc(t.plainName)}</a>`).join(' · ')}</p>`).join('')}
+    <h2>What’s Included</h2>
+    ${C.checkList(svc.includes)}
+    <h2>Common ${esc(svc.short)} Jobs in ${esc(c.name)}</h2>
+    ${C.checkList(shuffled(P.svc[svc.slug].needs, key).slice(0, 6).map((x) => x.charAt(0).toUpperCase() + x.slice(1)))}
+  </article>
+  <aside class="sidebar">
+    <div class="side-card side-cta"><h3>${esc(svc.short)} in ${esc(c.name)}?</h3><p>Free, written estimates in every ${esc(c.name)} town.</p><a class="btn btn-gold btn-block" href="${tel}">${icon('phone')} ${site.phone}</a><a class="btn btn-outline btn-block" href="#estimate">Request online</a></div>
+    <div class="side-card"><h3>Other counties</h3><ul class="side-links">${counties.filter((x) => x !== c).map((x) => `<li><a href="${csPath(svc, x)}">${icon('pin')} ${esc(svc.short)} in ${esc(x.name)}</a></li>`).join('')}</ul></div>
+    <div class="side-card"><h3>More in ${esc(c.name)}</h3><ul class="side-links">${others.map((s) => `<li><a href="${csPath(s, c)}">${icon(s.icon)} ${esc(s.short)}</a></li>`).join('')}</ul></div>
+  </aside>
+</div></section>
+${section(`${secHead('FAQ', `${esc(svc.name)} in ${esc(c.name)}: FAQ`, '')}${C.faqList(faqs)}`, 'section-alt')}
+${C.townDatalist()}`;
+  return {
+    path,
+    html: layout({
+      path, title, description, body, current: 'services', og: `cs-${svc.slug}-${c.slug}`,
+      breadcrumbs: [['Home', '/'], [svc.name, `/${svc.slug}/`], [`${c.name}, NJ`, path]],
+      schema: [
+        S.business(),
+        S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: svcImg(svc.slug) }),
+        S.serviceSchema(svc, path, { name: c.name, type: 'AdministrativeArea' }, svcImg(svc.slug)),
+        C.faqSchema(faqs, path),
+        itemList(`${svc.name} towns in ${c.name}`, c.towns.map((t) => [`${svc.name} in ${t.plainName}, NJ`, comboPath(svc, t)])),
+      ],
     }),
   };
 }
@@ -324,7 +424,7 @@ function townPage(t) {
     [`Which towns near ${name} do you serve?`, `We regularly work in ${listSentence(near.map((n) => `${n.plainName} (${milesBetween(t, n)} mi ${direction(t, n)})`))}, plus every other town in ${t.county.name}.`],
   ];
   const cards = `<div class="card-grid">${svcOrder.map((s) => `<a class="svc-card" href="${comboPath(s, t)}">
-    <span class="svc-ico">${icon(s.icon)}</span>
+    <img class="svc-thumb" src="/assets/img/services/${s.slug}.svg" width="320" height="180" loading="lazy" decoding="async" alt="Illustration: ${esc(s.name.toLowerCase())} in ${esc(name)}, NJ">
     <h3>${esc(s.name)} in ${esc(name)}</h3>
     <p>${esc(pick(P.svc[s.slug].needs, t.slug + s.slug).replace(/^./, (c) => c.toUpperCase()))} — and more.</p>
     <span class="svc-more">${esc(s.short)} in ${esc(name)} ${icon('arrow')}</span>
@@ -356,9 +456,9 @@ ${C.townDatalist()}`;
   return {
     path,
     html: layout({
-      path, title, description, body, current: 'areas',
+      path, title, description, body, current: 'areas', og: `town-${t.slug}`,
       breadcrumbs: [['Home', '/'], ['Service Areas', '/service-areas/'], [t.county.name, `/service-areas/${t.county.slug}/`], [name, path]],
-      schema: [S.business(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], place: { name, county: t.county.name, lat: t.lat, lng: t.lng } }), C.faqSchema(faqs, path)],
+      schema: [S.business(), S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: `/assets/img/og/town-${t.slug}.jpg`, place: { name, county: t.county.name } }), C.faqSchema(faqs, path), itemList(`Exterior services in ${name}, NJ`, svcOrder.map((s) => [`${s.name} in ${name}`, comboPath(s, t)]))],
     }),
   };
 }
@@ -441,17 +541,17 @@ ${hero({ eyebrow: `${esc(svc.short)} · ${esc(name)}, NJ`, h1: `${esc(svc.name)}
   </aside>
 </div></section>
 ${section(`${secHead('FAQ', `${esc(svc.name)} in ${esc(name)}: FAQ`, '')}${C.faqList(faqs)}`, 'section-alt')}
-${section(`<p class="center mt"><a href="${townPath(t)}">Exterior repair in ${esc(name)}</a> · <a href="/service-areas/${t.county.slug}/">${esc(t.county.name)} service area</a> · <a href="/${svc.slug}/">${esc(svc.name)} across the Jersey Shore</a></p>`)}
+${section(`<p class="center mt"><a href="${townPath(t)}">Exterior repair in ${esc(name)}</a> · <a href="${csPath(svc, t.county)}">${esc(svc.short)} in ${esc(t.county.name)}</a> · <a href="/service-areas/${t.county.slug}/">${esc(t.county.name)} service area</a> · <a href="/${svc.slug}/">${esc(svc.name)} across the Jersey Shore</a></p>`)}
 ${C.townDatalist()}`;
   return {
     path,
     html: layout({
-      path, title, description, body, current: 'services',
-      breadcrumbs: [['Home', '/'], [svc.name, `/${svc.slug}/`], [`${name}, NJ`, path]],
+      path, title, description, body, current: 'services', og: `svc-${svc.slug}`,
+      breadcrumbs: [['Home', '/'], [svc.name, `/${svc.slug}/`], [t.county.name, csPath(svc, t.county)], [`${name}, NJ`, path]],
       schema: [
         S.business(),
-        S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: `/assets/img/services/${svc.slug}.svg`, place: { name, county: t.county.name, lat: t.lat, lng: t.lng } }),
-        S.serviceSchema(svc, path, { name, containedIn: t.county.name }),
+        S.webPage(path, title, description, 'WebPage', { speakable: ['#answer'], image: svcImg(svc.slug), place: { name, county: t.county.name } }),
+        S.serviceSchema(svc, path, { name, containedIn: t.county.name }, svcImg(svc.slug)),
         C.faqSchema(faqs, path),
       ],
     }),
@@ -467,6 +567,8 @@ function about() {
 ${hero({ eyebrow: 'About Us', h1: 'Quality. Reliability. Results.', lead: 'Exterior Home Repair Plus is a Jersey Shore exterior contractor serving homeowners in Ocean, Monmouth and Atlantic County with roofing, siding, gutters, windows, doors, decks and storm damage repair.', form: C.estimateForm(), crumbsAbove: true })}
 <section class="section"><div class="wrap content-grid">
   <article class="prose">
+    ${answerBox(`<strong>Exterior Home Repair Plus</strong> is a local exterior contractor serving Ocean, Monmouth and Atlantic County, New Jersey. We specialize in roofing, siding, gutters, windows, doors, decks and storm damage repair. Our motto: Quality. Reliability. Results.`)}
+    <figure class="svc-figure brand-figure"><picture><source srcset="/assets/img/logo-full.webp" type="image/webp"><img src="/assets/img/logo.png" width="480" height="453" loading="lazy" decoding="async" alt="Exterior Home Repair Plus logo — Quality. Reliability. Results."></picture></figure>
     <h2>Local Exterior Experts Who Show Up</h2>
     <p>We started Exterior Home Repair Plus with a simple idea: homeowners deserve a contractor who answers the phone, shows up when promised, explains the work in plain English and stands behind the finished job. Too many people at the shore have been burned by storm chasers and no-shows. We’re here to be the opposite of that.</p>
     <p>Our name says it all. We focus on the <strong>exterior</strong> of your home — the systems that keep weather out — and the <strong>plus</strong> is everything that comes with it: honest advice, clean job sites, clear pricing and follow-through.</p>
@@ -484,7 +586,7 @@ ${hero({ eyebrow: 'About Us', h1: 'Quality. Reliability. Results.', lead: 'Exter
 </div></section>
 ${section(`${secHead('The difference', 'Why Homeowners Choose Us', '')}${C.whyUs()}`, 'section-alt')}
 ${C.townDatalist()}`;
-  return { path, html: layout({ path, title, description, body, current: 'about', breadcrumbs: [['Home', '/'], ['About', path]], schema: [S.business(true), S.webPage(path, title, description, 'AboutPage')] }) };
+  return { path, html: layout({ path, title, description, body, current: 'about', og: 'about', breadcrumbs: [['Home', '/'], ['About', path]], schema: [S.business(true), S.webPage(path, title, description, 'AboutPage', { speakable: ['#answer'], image: '/assets/img/og/about.jpg' })] }) };
 }
 
 // ---------------------------------------------------------------- Contact
@@ -493,6 +595,12 @@ function contact() {
   const title = 'Free Estimates & Contact | Exterior Home Repair Plus';
   const description = `Request a free roofing, siding, gutter, window, door or deck estimate anywhere in Ocean, Monmouth or Atlantic County, NJ. Call ${site.phone} or email us.`;
   const hours = site.hours.map((h) => `<li><span>${esc(h.days)}</span><span>${esc(h.close ? `${h.open} – ${h.close}` : h.open)}</span></li>`).join('');
+  const faqs = [
+    ['How fast will you get back to me?', 'Usually the same business day. For active leaks or storm damage, please call so we can respond right away.'],
+    ['What happens after I request an estimate?', 'We call to learn about the project, schedule a convenient time to inspect your home, and then send a written, itemized estimate. There is no cost and no obligation.'],
+    ['Do I need to be home for the estimate?', 'For roofing, gutters and most exterior work we can often inspect without you, but we recommend being there so we can walk through options together. Window and door estimates require access inside.'],
+    ['What areas do you serve?', `All ${towns.length} towns in Ocean, Monmouth and Atlantic County, New Jersey.`],
+  ];
   const body = `
 <section class="section contact-hero">
   <div class="wrap contact-grid">
@@ -510,8 +618,19 @@ function contact() {
     <div>${C.estimateForm({ heading: 'Request a Free Estimate' })}</div>
   </div>
 </section>
+<section class="section"><div class="wrap content-grid">
+  <article class="prose">
+    ${answerBox(`To reach <strong>Exterior Home Repair Plus</strong>, call or text <a href="${tel}">${site.phone}</a>, email <a href="mailto:${site.email}">${esc(site.email)}</a>, or use the form above. Estimates are free for homes anywhere in Ocean, Monmouth and Atlantic County, NJ.`)}
+    <h2>What Happens Next</h2>
+    ${C.processSteps()}
+    <h2>Where We Work</h2>
+    <p>${counties.map((c) => `<a href="/service-areas/${c.slug}/">${esc(c.name)}</a> (${c.towns.length} towns)`).join(' · ')}. Popular towns include ${listSentence(['toms-river', 'brick', 'middletown', 'howell', 'long-branch', 'egg-harbor-township', 'galloway-township'].map((sl) => towns.find((t) => t.slug === sl)).map((t) => `<a href="${townPath(t)}">${esc(t.plainName)}</a>`))}.</p>
+  </article>
+  <aside class="sidebar"><figure class="svc-figure brand-figure"><picture><source srcset="/assets/img/logo-full.webp" type="image/webp"><img src="/assets/img/logo.png" width="480" height="453" loading="lazy" decoding="async" alt="Exterior Home Repair Plus — (908) 636-9745"></picture></figure></aside>
+</div></section>
+${section(`${secHead('FAQ', 'Estimate Questions', '')}${C.faqList(faqs)}`, 'section-alt')}
 ${C.townDatalist()}`;
-  return { path, html: layout({ path, title, description, body, current: 'contact', breadcrumbs: [['Home', '/'], ['Contact', path]], schema: [S.business(true), S.webPage(path, title, description, 'ContactPage')] }) };
+  return { path, html: layout({ path, title, description, body, current: 'contact', og: 'contact', breadcrumbs: [['Home', '/'], ['Contact', path]], schema: [S.business(true), S.webPage(path, title, description, 'ContactPage', { speakable: ['#answer'], image: '/assets/img/og/contact.jpg' }), C.faqSchema(faqs, path)] }) };
 }
 
 // ---------------------------------------------------------------- FAQ
@@ -528,15 +647,15 @@ function faqPage() {
   const all = [...general, ...services.flatMap((s) => s.faqs.slice(0, 2))];
   const body = `
 ${hero({ eyebrow: 'FAQ', h1: 'Frequently Asked Questions', lead: 'Straight answers about exterior home repair at the Jersey Shore. Don’t see your question? Call us at ' + site.phone + '.', form: C.estimateForm(), crumbsAbove: true })}
-${section(`${secHead('', 'General Questions', '')}${C.faqList(general)}`)}
+${section(`${figure('roof-repair', 'Illustration: roof and exterior repair questions answered for Jersey Shore homeowners', 'Straight answers from the Exterior Home Repair Plus crew')}${secHead('', 'General Questions', '')}${C.faqList(general)}`)}
 ${services.map((s, i) => section(`${secHead('', `${esc(s.name)}`, `<a href="/${s.slug}/">Learn more about ${esc(s.name.toLowerCase())} →</a>`)}${C.faqList(s.faqs.slice(0, 2))}`, i % 2 ? '' : 'section-alt')).join('')}
 ${C.townDatalist()}`;
-  return { path, html: layout({ path, title, description, body, current: 'faq', breadcrumbs: [['Home', '/'], ['FAQ', path]], schema: [S.business(), S.webPage(path, title, description), C.faqSchema(all, path)] }) };
+  return { path, html: layout({ path, title, description, body, current: 'faq', og: 'faq', breadcrumbs: [['Home', '/'], ['FAQ', path]], schema: [S.business(), S.webPage(path, title, description, 'WebPage', { image: svcImg('roof-repair') }), C.faqSchema(all, path)] }) };
 }
 
 // ---------------------------------------------------------------- Resources
 function articleCard(a) {
-  return `<a class="post-card" href="/resources/${a.slug}/"><time datetime="${a.date}">${new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</time><h3>${esc(a.title)}</h3><p>${esc(a.description)}</p><span class="svc-more">Read article ${icon('arrow')}</span></a>`;
+  return `<a class="post-card" href="/resources/${a.slug}/"><img class="post-thumb" src="/assets/img/services/${a.services[0]}.svg" width="320" height="180" loading="lazy" decoding="async" alt="Illustration for ${esc(a.title)}"><time datetime="${a.date}">${new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</time><h3>${esc(a.title)}</h3><p>${esc(a.description)}</p><span class="svc-more">Read article ${icon('arrow')}</span></a>`;
 }
 
 function resourcesIndex() {
@@ -546,31 +665,54 @@ function resourcesIndex() {
   const body = `
 <section class="section page-head"><div class="wrap"><p class="eyebrow">Resources</p><h1>Homeowner Resources</h1><p class="lead">Practical advice from our crew on protecting your Jersey Shore home.</p></div></section>
 ${section(`<div class="post-grid">${articles.map(articleCard).join('')}</div>`)}`;
-  return { path, html: layout({ path, title, description, body, current: 'resources', breadcrumbs: [['Home', '/'], ['Resources', path]], schema: [S.business(), S.webPage(path, title, description, 'CollectionPage')] }) };
+  return { path, html: layout({ path, title, description, body, current: 'resources', og: 'resources', breadcrumbs: [['Home', '/'], ['Resources', path]], schema: [S.business(), S.webPage(path, title, description, 'CollectionPage', { image: '/assets/img/og/resources.jpg' }), itemList('Homeowner resources', articles.map((a) => [a.title, `/resources/${a.slug}/`]))] }) };
 }
 
 function articlePage(a) {
   const path = `/resources/${a.slug}/`;
   const title = brandTitle(a.title);
   const rel = a.services.map((sl) => services.find((s) => s.slug === sl));
+  const img = `/assets/img/og/article-${a.slug}.jpg`;
   const body = `
 <section class="section page-head"><div class="wrap narrow"><p class="eyebrow">Homeowner Resources</p><h1>${esc(a.title)}</h1><p class="meta">By ${esc(site.name)} · <time datetime="${a.date}">${new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</time></p></div></section>
 <section class="section"><div class="wrap content-grid">
-  <article class="prose">${a.body}
+  <article class="prose">
+    ${answerBox(esc(a.answer))}
+    ${figure(a.services[0], `Illustration: ${a.title}`, esc(a.description))}
+    ${a.body}
+    <h2>Frequently Asked Questions</h2>
+    ${C.faqList(a.faqs)}
     <div class="callout">${icon('phone')}<div><strong>Have a question about your home?</strong> Call <a href="${tel}">${site.phone}</a> — we’re happy to help, even if you’re not ready for an estimate.</div></div>
   </article>
   <aside class="sidebar">
     <div class="side-card side-cta"><h3>Free estimates</h3><p>Serving Ocean, Monmouth &amp; Atlantic County.</p><a class="btn btn-gold btn-block" href="${tel}">${icon('phone')} ${site.phone}</a><a class="btn btn-outline btn-block" href="/contact/#estimate">Request online</a></div>
     <div class="side-card"><h3>Related services</h3><ul class="side-links">${rel.map((s) => `<li><a href="/${s.slug}/">${icon(s.icon)} ${esc(s.name)}</a></li>`).join('')}</ul></div>
-    <div class="side-card"><h3>More articles</h3><ul class="side-links">${articles.filter((x) => x !== a).map((x) => `<li><a href="/resources/${x.slug}/">${esc(x.title)}</a></li>`).join('')}</ul></div>
+    <div class="side-card"><h3>More articles</h3><ul class="side-links">${articles.filter((x) => x !== a).slice(0, 6).map((x) => `<li><a href="/resources/${x.slug}/">${esc(x.title)}</a></li>`).join('')}</ul></div>
   </aside>
 </div></section>`;
   return {
     path,
     html: layout({
-      path, title, description: a.description, body, current: 'resources', ogType: 'article',
+      path, title, description: a.description, body, current: 'resources', ogType: 'article', og: `article-${a.slug}`,
       breadcrumbs: [['Home', '/'], ['Resources', '/resources/'], [a.title, path]],
-      schema: [S.business(), S.webPage(path, a.title, a.description), { '@type': 'Article', '@id': require('./lib/layout').abs(path) + '#article', headline: a.title, description: a.description, datePublished: a.date, dateModified: a.date, author: { '@id': S.BIZ_ID }, publisher: { '@id': S.BIZ_ID }, image: require('./lib/layout').abs('/assets/img/og-image.jpg'), mainEntityOfPage: require('./lib/layout').abs(path) }],
+      schema: [
+        S.business(),
+        S.webPage(path, a.title, a.description, 'WebPage', { speakable: ['#answer'], image: img }),
+        {
+          '@type': 'Article',
+          '@id': absUrl(path) + '#article',
+          headline: a.title,
+          description: a.description,
+          datePublished: a.date,
+          dateModified: a.date,
+          author: { '@type': 'Organization', '@id': S.BIZ_ID, name: site.name, url: absUrl('/') },
+          publisher: { '@id': S.BIZ_ID },
+          image: { '@type': 'ImageObject', url: absUrl(img), width: 1200, height: 630 },
+          mainEntityOfPage: { '@id': absUrl(path) + '#webpage' },
+          about: rel.map((s) => ({ '@type': 'Service', name: s.name, url: absUrl(`/${s.slug}/`) })),
+        },
+        C.faqSchema(a.faqs, path),
+      ],
     }),
   };
 }
@@ -610,7 +752,7 @@ function htmlSitemap() {
 <section class="section"><div class="wrap sitemap">
   <div class="sitemap-cols">
     <div><h2 class="h3">Main pages</h2><ul>${main.map(([n, p]) => `<li><a href="${p}">${n}</a></li>`).join('')}</ul></div>
-    <div><h2 class="h3">Services</h2><ul>${services.map((s) => `<li><a href="/${s.slug}/">${esc(s.name)}</a></li>`).join('')}</ul></div>
+    <div><h2 class="h3">Services</h2><ul>${services.map((s) => `<li><a href="/${s.slug}/">${esc(s.name)}</a> — ${counties.map((c) => `<a href="${csPath(s, c)}">${esc(c.name.replace(' County', ''))}</a>`).join(', ')}</li>`).join('')}</ul></div>
     <div><h2 class="h3">Homeowner resources</h2><ul>${articles.map((a) => `<li><a href="/resources/${a.slug}/">${esc(a.title)}</a></li>`).join('')}</ul></div>
   </div>
   ${counties.map((c) => `<h2>${esc(c.name)}</h2>
@@ -623,6 +765,7 @@ function allPages() {
   const pages = [home(), servicesIndex(), areasIndex(), about(), contact(), faqPage(), resourcesIndex(), htmlSitemap()];
   services.forEach((s) => pages.push(serviceHub(s)));
   counties.forEach((c) => pages.push(countyPage(c)));
+  services.forEach((s) => counties.forEach((c) => pages.push(countyServicePage(s, c))));
   towns.forEach((t) => pages.push(townPage(t)));
   services.forEach((s) => towns.forEach((t) => pages.push(comboPage(s, t))));
   articles.forEach((a) => pages.push(articlePage(a)));

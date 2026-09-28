@@ -10,6 +10,8 @@ const tel = `tel:${site.phoneE164}`;
 
 // Filled in by build.js with content hashes so CSS/JS can be cached forever.
 const assetVersion = { css: '', js: '' };
+// Share-image keys generated this build (see src/lib/og.js).
+const ogAvailable = new Set();
 
 const logoPicture = (cls, w, h, eager) => `<picture>
   <source srcset="/assets/img/logo-sm.webp 240w, /assets/img/logo.webp 480w" sizes="${w}px" type="image/webp">
@@ -131,6 +133,7 @@ function footer() {
  */
 function layout(page) {
   const canonical = abs(page.path);
+  const ogImg = abs(page.og && ogAvailable.has(page.og) ? `/assets/img/og/${page.og}.jpg` : '/assets/img/og-image.jpg');
   const graph = [...(page.schema || [])];
   if (page.breadcrumbs && page.breadcrumbs.length) {
     graph.push({
@@ -155,21 +158,21 @@ ${page.noindex ? '<meta name="robots" content="noindex, follow">' : '<meta name=
 <meta property="og:title" content="${esc(page.title)}">
 <meta property="og:description" content="${esc(page.description)}">
 <meta property="og:url" content="${canonical}">
-<meta property="og:image" content="${abs('/assets/img/og-image.jpg')}">
+<meta property="og:image" content="${ogImg}">
+<meta property="og:image:alt" content="${esc(page.title)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(page.title)}">
 <meta name="twitter:description" content="${esc(page.description)}">
-<meta name="twitter:image" content="${abs('/assets/img/og-image.jpg')}">
+<meta name="twitter:image" content="${ogImg}">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/assets/img/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap">
+<link rel="preload" href="/assets/fonts/oswald-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css?v=${assetVersion.css}">
 ${jsonld}
 </head>
@@ -191,4 +194,4 @@ function breadcrumbNav(crumbs) {
     .join('')}</ol></div></nav>`;
 }
 
-module.exports = { layout, esc, abs, tel, assetVersion, logoPicture };
+module.exports = { layout, esc, abs, tel, assetVersion, ogAvailable, logoPicture };
