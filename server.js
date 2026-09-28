@@ -73,68 +73,13 @@ app.use(
 // ---- Estimate requests
 app.use('/api', express.json({ limit: '20kb' }), express.urlencoded({ extended: false, limit: '20kb' }));
 
-const hits = new Map(); // simple per-IP rate limit: 5 per 10 minutes
-function rateLimited(ip) {
-  const now = Date.now();
-  const list = (hits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
-  list.push(now);
-  hits.set(ip, list);
-  return list.length > 5;
-}
-
-let transporter = null;
-if (process.env.SMTP_HOST) {
-  const nodemailer = require('nodemailer');
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
-  });
-}
-
-const clean = (v, max) => String(v || '').replace(/[\r\n]+/g, ' ').trim().slice(0, max);
+const { handleLead } = require('./src/lib/leads');
 
 app.post('/api/estimate', async (req, res) => {
   const wantsJson = (req.get('accept') || '').includes('application/json');
-  const fail = (code, error) => (wantsJson ? res.status(code).json({ error }) : res.status(code).send(error));
-  const b = req.body || {};
-  if (b.company) return wantsJson ? res.json({ ok: true }) : res.redirect(303, '/thank-you/'); // honeypot
-  if (rateLimited(req.ip)) return fail(429, `Too many requests. Please call ${site.phone}.`);
-
-  const lead = {
-    name: clean(b.name, 80),
-    phone: clean(b.phone, 30),
-    email: clean(b.email, 120),
-    town: clean(b.town, 80),
-    service: clean(b.service, 80),
-    message: String(b.message || '').trim().slice(0, 2000),
-    page: clean(b.page, 200),
-    at: new Date().toISOString(),
-  };
-  if (!lead.name || lead.phone.replace(/\D/g, '').length < 10 || !lead.town) {
-    return fail(400, 'Please include your name, a valid phone number and your town.');
-  }
-
-  fs.appendFile(path.join(__dirname, 'leads.log'), JSON.stringify(lead) + '\n', () => {});
-
-  if (transporter) {
-    try {
-      await transporter.sendMail({
-        from: process.env.LEAD_FROM || site.email,
-        to: process.env.LEAD_TO || site.email,
-        replyTo: lead.email || undefined,
-        subject: `New estimate request: ${lead.service || 'Exterior work'} — ${lead.town}`,
-        text: `Name: ${lead.name}\nPhone: ${lead.phone}\nEmail: ${lead.email}\nTown: ${lead.town}\nService: ${lead.service}\nPage: ${lead.page}\n\n${lead.message}`,
-      });
-    } catch (err) {
-      console.error('Lead email failed:', err.message);
-    }
-  } else {
-    console.log('New lead:', lead);
-  }
-
-  return wantsJson ? res.json({ ok: true }) : res.redirect(303, '/thank-you/');
+  const result = await handleLead(req.body, req.ip);
+  if (result.status === 200) return wantsJson ? res.json({ ok: true }) : res.redirect(303, '/thank-you/');
+  return wantsJson ? res.status(result.status).json({ error: result.error }) : res.status(result.status).send(result.error);
 });
 
 app.get('/healthz', (req, res) => res.type('text').send('ok'));

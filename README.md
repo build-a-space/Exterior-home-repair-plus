@@ -56,6 +56,18 @@ sitemaps use it. Set `NODE_ENV=production` to enable the HTTPS/canonical-host re
 
 Logo assets were generated from `brand/logo-source.jpg` with `npm run logo` (uses `sharp`).
 
+## Deploying
+
+**Vercel (recommended):** import the repo — `vercel.json` already sets the build command
+(`npm run build`), output directory (`dist`), trailing-slash URLs, caching headers and the
+`/api/estimate` serverless function. Add environment variables in the Vercel project:
+`SITE_URL=https://www.exteriorhomerepairplus.com` plus the `SMTP_*` / `LEAD_TO` values so estimate
+requests are emailed (Vercel can't write `leads.log`; without SMTP, leads only appear in the function logs).
+Then add the domain under Project → Settings → Domains.
+
+**Any Node host (Render, Railway, VPS):** build `npm install && npm run build`, start `npm start`,
+set `NODE_ENV=production` and `SITE_URL`.
+
 ## Estimate form
 
 Posts to `/api/estimate` (JSON or regular form POST). Leads are appended to `leads.log`; set the
