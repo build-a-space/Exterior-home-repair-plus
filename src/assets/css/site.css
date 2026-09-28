@@ -394,3 +394,5 @@ h1, h2 { overflow-wrap: break-word; }
 /* Dropdowns sit above the header's blue trim line */
 .site-header::after { z-index: 1; }
 .menu { z-index: 5; }
+.footer-bottom .credit a { color: var(--gold); }
+.footer-bottom .credit a:hover { text-decoration: underline; }
