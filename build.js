@@ -69,35 +69,18 @@ async function build() {
     fs.writeFileSync(out, p.html);
   }
 
-  // Sitemaps — split by page type so Search Console reports are easy to read.
+  // One flat sitemap with page URLs only (simplest for Search Console to fetch and read).
   const today = new Date().toISOString().slice(0, 10);
   const indexable = pages.filter((p) => !p.path.endsWith('.html') && !/noindex/.test(p.html.slice(0, 2500)));
-  const groups = { core: [], services: [], areas: [], local: [] };
-  for (const p of indexable) {
-    if (p.path.startsWith('/service-areas/')) groups.areas.push(p);
-    else if (/^\/[^/]+\/[^/]+-nj\/$/.test(p.path)) groups.local.push(p);
-    else if (p.path.split('/').length === 3 && !['/about/', '/contact/', '/faq/', '/resources/', '/services/', '/privacy-policy/', '/sitemap/'].includes(p.path) && p.path !== '/') groups.services.push(p);
-    else groups.core.push(p);
-  }
-  const priority = (p) => (p.path === '/' ? '1.0' : groups.services.includes(p) ? '0.9' : /^\/service-areas\/[^/]+\/$/.test(p.path) ? '0.8' : groups.local.includes(p) ? '0.6' : '0.7');
-  for (const [name, list] of Object.entries(groups)) {
-    // Image sitemap entries: the page's content images (raster copies where available) + its share image.
-    const imagesOf = (p) => {
-      const main = p.html.slice(p.html.indexOf('<main'), p.html.indexOf('</main>'));
-      const srcs = [...main.matchAll(/<img\b[^>]*src="(\/[^"]+)"/g)].map((m) => m[1].replace(/^(\/assets\/img\/services\/[^.]+)\.svg$/, '$1.jpg'));
-      const og = (p.html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1];
-      return [...new Set([...srcs.map((s) => site.url + s), og].filter(Boolean))].slice(0, 20);
-    };
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${list
-      .map((p) => `  <url><loc>${site.url}${p.path}</loc><lastmod>${today}</lastmod><priority>${priority(p)}</priority>${imagesOf(p).map((u) => `<image:image><image:loc>${u}</image:loc></image:image>`).join('')}</url>`)
-      .join('\n')}\n</urlset>\n`;
-    fs.writeFileSync(path.join(DIST, `sitemap-${name}.xml`), xml);
-  }
+  const isHub = (p) => p.path.split('/').length === 3 && p.path !== '/' && !['/about/', '/contact/', '/faq/', '/resources/', '/services/', '/privacy-policy/', '/sitemap/'].includes(p.path);
+  const priority = (p) => (p.path === '/' ? '1.0' : isHub(p) ? '0.9' : /^\/service-areas\/[^/]+\/$/.test(p.path) ? '0.8' : /^\/[^/]+\/[^/]+-nj\/$/.test(p.path) ? '0.6' : '0.7');
+  const order = (p) => (p.path === '/' ? 0 : isHub(p) ? 1 : p.path.startsWith('/service-areas/') ? 2 : /-nj\/$/.test(p.path) ? 3 : 1.5);
+  const sorted = indexable.slice().sort((x, y) => order(x) - order(y));
   fs.writeFileSync(
     path.join(DIST, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${Object.keys(groups)
-      .map((n) => `  <sitemap><loc>${site.url}/sitemap-${n}.xml</loc><lastmod>${today}</lastmod></sitemap>`)
-      .join('\n')}\n</sitemapindex>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sorted
+      .map((p) => `  <url><loc>${site.url}${p.path}</loc><lastmod>${today}</lastmod><priority>${priority(p)}</priority></url>`)
+      .join('\n')}\n</urlset>\n`
   );
 
   fs.writeFileSync(path.join(DIST, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /thank-you/\n\n# Plain-language site summary for AI assistants: ${site.url}/llms.txt\nSitemap: ${site.url}/sitemap.xml\n`);
@@ -150,7 +133,7 @@ async function build() {
 
   fs.writeFileSync(path.join(DIST, 'favicon.ico'), pngToIco(fs.readFileSync(path.join(SRC, 'assets/img/favicon-48.png')), 48));
 
-  console.log(`Built ${pages.length} pages (${indexable.length} in sitemaps: ${Object.entries(groups).map(([k, v]) => `${k} ${v.length}`).join(', ')}) in ${Date.now() - t0}ms → dist/`);
+  console.log(`Built ${pages.length} pages (${indexable.length} in sitemap.xml) in ${Date.now() - t0}ms → dist/`);
 }
 
 module.exports = build().catch((err) => {
